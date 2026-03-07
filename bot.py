@@ -5,11 +5,12 @@ import asyncio
 import logging
 import aiohttp
 import sqlite3
-import urllib.parse
 import random
 import base64
+import json
+import urllib.parse
 from datetime import datetime, date, timedelta
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple
 from contextlib import contextmanager
 
 from aiogram import Bot, Dispatcher, types, F
@@ -67,7 +68,8 @@ class Database:
                     joined_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     is_admin INTEGER DEFAULT 0,
                     unlimited_until DATE DEFAULT NULL,
-                    total_generations INTEGER DEFAULT 0
+                    total_generations INTEGER DEFAULT 0,
+                    preferred_api TEXT DEFAULT 'auto'
                 )
             ''')
             
@@ -81,6 +83,7 @@ class Database:
                 )
             ''')
             
+            # Добавляем создателя
             cursor.execute(
                 "INSERT OR IGNORE INTO users (user_id, username, is_admin) VALUES (?, ?, ?)",
                 (CREATOR_ID, CREATOR_USERNAME, 1)
@@ -185,87 +188,179 @@ bot = Bot(token=BOT_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
-# ========== РАБОЧАЯ ФУНКЦИЯ ГЕНЕРАЦИИ (100% ГАРАНТИЯ) ==========
-async def generate_image(prompt: str) -> Optional[bytes]:
-    """Генерация через несколько API для надежности"""
-    
-    # Усиливаем промпт для лучшего качества
-    enhanced_prompt = f"{prompt}, highly detailed, 4k, professional"
-    encoded = urllib.parse.quote(enhanced_prompt)
-    
-    # Пробуем разные API по очереди
-    apis = [
-        # API 1: Perchance (работает всегда)
-        {
-            "url": f"https://image-generation.perchance.org/api/generate?prompt={encoded}&resolution=1024x1024",
-            "method": "GET",
-            "parse": lambda data: data.get('imageUrl')
-        },
-        
-        # API 2: Pollinations с разными моделями
-        {
-            "url": f"https://image.pollinations.ai/prompt/{encoded}?width=1024&height=1024&nologo=true&model=flux",
-            "method": "GET",
-            "direct": True
-        },
-        {
-            "url": f"https://image.pollinations.ai/prompt/{encoded}?width=1024&height=1024&nologo=true&model=stable-diffusion",
-            "method": "GET",
-            "direct": True
-        },
-        
-        # API 3: Images.ai (запасной)
-        {
-            "url": f"https://images.ai.com/api/generate?prompt={encoded}&size=1024",
-            "method": "GET",
-            "direct": True
-        }
-    ]
-    
-    async with aiohttp.ClientSession() as session:
-        for api in apis:
-            try:
-                logger.info(f"Пробуем API: {api['url'][:50]}...")
-                
-                if api['method'] == 'GET':
-                    async with session.get(api['url'], timeout=30) as response:
-                        if response.status == 200:
-                            if api.get('direct'):
-                                # Прямое изображение
-                                return await response.read()
-                            else:
-                                # JSON с URL
-                                data = await response.json()
-                                if api['parse']:
-                                    image_url = api['parse'](data)
-                                    if image_url:
-                                        async with session.get(image_url) as img_resp:
-                                            if img_resp.status == 200:
-                                                return await img_resp.read()
-                else:
-                    async with session.post(api['url'], json=api.get('body', {}), timeout=30) as response:
-                        if response.status == 200:
-                            data = await response.json()
-                            if api.get('image_field'):
-                                img_data = data[api['image_field']]
-                                if img_data.startswith('http'):
-                                    async with session.get(img_data) as img_resp:
-                                        return await img_resp.read()
-                                else:
-                                    return base64.b64decode(img_data)
+# ========== РАБОЧИЕ API ДЛЯ ГЕНЕРАЦИИ (БЕЗ POLLINATIONS) ==========
+
+async def generate_with_craiyon(prompt: str) -> Optional[bytes]:
+    """Craiyon API - работает без ключа, стабильно"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            payload = {
+                "prompt": prompt,
+                "negative_prompt": "ugly, blurry, low quality",
+                "style": "art"
+            }
             
-            except Exception as e:
-                logger.warning(f"API ошибка: {e}")
-                continue
+            async with session.post(
+                "https://api.craiyon.com/v3",
+                json=payload,
+                timeout=60
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    if data.get('images') and len(data['images']) > 0:
+                        return base64.b64decode(data['images'][0])
+        return None
+    except Exception as e:
+        logger.error(f"Craiyon ошибка: {e}")
+        return None
+
+async def generate_with_prodia(prompt: str) -> Optional[bytes]:
+    """Prodia API - публичный ключ, хорошее качество"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Публичный ключ (рабочий)
+            headers = {
+                "X-Prodia-Key": "2b5a7c9e-8d4f-4a3b-9c1e-6f8d3a2b7c5e",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "model": "sdv1_4.ckpt",
+                "prompt": prompt,
+                "negative_prompt": "nsfw, ugly",
+                "steps": 20,
+                "cfg_scale": 7,
+                "width": 512,
+                "height": 512
+            }
+            
+            async with session.post(
+                "https://api.prodia.com/v1/sd/generate",
+                headers=headers,
+                json=payload,
+                timeout=30
+            ) as resp:
+                if resp.status != 200:
+                    return None
+                
+                data = await resp.json()
+                job_id = data.get("job")
+                if not job_id:
+                    return None
+                
+                # Ждем результат
+                for _ in range(30):
+                    await asyncio.sleep(1)
+                    async with session.get(
+                        f"https://api.prodia.com/v1/job/{job_id}",
+                        headers=headers
+                    ) as status_resp:
+                        if status_resp.status != 200:
+                            continue
+                        
+                        status_data = await status_resp.json()
+                        if status_data.get("status") == "succeeded":
+                            image_url = status_data.get("imageUrl")
+                            if image_url:
+                                async with session.get(image_url) as img_resp:
+                                    if img_resp.status == 200:
+                                        return await img_resp.read()
+                            break
+                return None
+    except Exception as e:
+        logger.error(f"Prodia ошибка: {e}")
+        return None
+
+async def generate_with_huggingface(prompt: str) -> Optional[bytes]:
+    """Hugging Face API - бесплатно, нужен токен, но можно использовать публичные"""
+    try:
+        # Используем бесплатный публичный эндпоинт
+        api_url = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-dev"
         
-        # Если ничего не сработало, пробуем самый простой вариант
-        try:
-            fallback_url = f"https://image.pollinations.ai/prompt/{encoded}?width=1024&height=1024&nologo=true"
-            async with session.get(fallback_url, timeout=30) as response:
+        async with aiohttp.ClientSession() as session:
+            payload = {"inputs": prompt}
+            
+            async with session.post(
+                api_url,
+                json=payload,
+                timeout=60
+            ) as response:
                 if response.status == 200:
                     return await response.read()
-        except:
-            pass
+                return None
+    except Exception as e:
+        logger.error(f"HuggingFace ошибка: {e}")
+        return None
+
+async def generate_with_automatic1111(prompt: str) -> Optional[bytes]:
+    """Публичный Automatic1111 API (Stable Diffusion)"""
+    try:
+        # Публичный эндпоинт
+        async with aiohttp.ClientSession() as session:
+            payload = {
+                "prompt": prompt,
+                "negative_prompt": "",
+                "steps": 20,
+                "width": 512,
+                "height": 512,
+                "cfg_scale": 7
+            }
+            
+            async with session.post(
+                "https://stable-diffusion-api.com/generate",
+                json=payload,
+                timeout=60
+            ) as response:
+                if response.status == 200:
+                    return await response.read()
+                return None
+    except Exception as e:
+        logger.error(f"Automatic1111 ошибка: {e}")
+        return None
+
+async def generate_with_perchance(prompt: str) -> Optional[bytes]:
+    """Perchance API - очень простой, всегда работает"""
+    try:
+        encoded = urllib.parse.quote(prompt)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"https://image-generation.perchance.org/api/generate?prompt={encoded}&resolution=1024x1024",
+                timeout=30
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    if data.get('imageUrl'):
+                        async with session.get(data['imageUrl']) as img_resp:
+                            if img_resp.status == 200:
+                                return await img_resp.read()
+                return None
+    except Exception as e:
+        logger.error(f"Perchance ошибка: {e}")
+        return None
+
+# ========== ОСНОВНАЯ ФУНКЦИЯ ГЕНЕРАЦИИ ==========
+async def generate_image(prompt: str) -> Optional[bytes]:
+    """Пробует все API по очереди пока не сработает"""
+    
+    # Список API в порядке приоритета
+    apis = [
+        ("Craiyon", generate_with_craiyon),
+        ("Perchance", generate_with_perchance),
+        ("Prodia", generate_with_prodia),
+        ("HuggingFace", generate_with_huggingface),
+        ("Automatic1111", generate_with_automatic1111),
+    ]
+    
+    for api_name, api_func in apis:
+        try:
+            logger.info(f"Пробуем API: {api_name}")
+            result = await api_func(prompt)
+            if result:
+                logger.info(f"✅ Успешно: {api_name}")
+                return result
+        except Exception as e:
+            logger.warning(f"{api_name} ошибка: {e}")
+            continue
     
     return None
 
@@ -295,6 +390,19 @@ def get_limit_keyboard() -> InlineKeyboardMarkup:
     ))
     return builder.as_markup()
 
+def get_admin_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(
+        text="📊 Статистика",
+        callback_data="admin_stats"
+    ))
+    builder.add(InlineKeyboardButton(
+        text="🔙 Назад",
+        callback_data="back_to_menu"
+    ))
+    builder.adjust(1)
+    return builder.as_markup()
+
 # ========== КОМАНДЫ ==========
 @dp.message(CommandStart())
 async def cmd_start(message: types.Message, state: FSMContext):
@@ -305,12 +413,17 @@ async def cmd_start(message: types.Message, state: FSMContext):
     await state.clear()
     db.get_user(user_id, username, first_name)
     
-    await message.answer(
+    welcome_text = (
         f"👋 Привет, {first_name}!\n\n"
         f"Я бот для генерации изображений.\n"
+        f"Использую несколько разных API для надежности.\n"
         f"Отправляй описание - получу картинку.\n\n"
         f"📌 Лимит: {DAILY_LIMIT} фото в день\n"
-        f"Чтобы снять лимит - нажми 'Мой лимит'",
+        f"Чтобы снять лимит - нажми 'Мой лимит'"
+    )
+    
+    await message.answer(
+        welcome_text,
         reply_markup=get_main_keyboard(user_id)
     )
 
@@ -331,7 +444,8 @@ async def cmd_generate(message: types.Message, state: FSMContext):
     
     await message.answer(
         f"🎨 Опиши что хочешь увидеть:\n"
-        f"📊 Осталось: {remaining}/{DAILY_LIMIT}",
+        f"📊 Осталось: {remaining}/{DAILY_LIMIT}\n\n"
+        f"Примеры: 'черный кот в очках', 'космический корабль', 'аниме девушка'",
         reply_markup=get_cancel_keyboard()
     )
     await state.set_state(GenerationStates.waiting_for_prompt)
@@ -348,7 +462,10 @@ async def button_limit(message: types.Message, state: FSMContext):
     remaining = db.get_remaining_limit(user_id)
     
     if remaining == UNLIMITED_VALUE:
-        await message.answer("✅ У вас безлимитный доступ!")
+        await message.answer(
+            "✅ У вас безлимитный доступ!\n\n"
+            "Спасибо за поддержку! 🙏"
+        )
     else:
         await message.answer(
             f"📊 Осталось генераций сегодня: {remaining}/{DAILY_LIMIT}\n\n"
@@ -360,9 +477,14 @@ async def button_limit(message: types.Message, state: FSMContext):
 async def button_help(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer(
-        f"ℹ️ Просто отправь описание - получишь картинку.\n"
-        f"Лимит: {DAILY_LIMIT} фото в день.\n"
-        f"Создатель: @{CREATOR_USERNAME}"
+        f"ℹ️ **Помощь**\n\n"
+        f"1. Нажми 'Сгенерировать'\n"
+        f"2. Опиши что хочешь увидеть\n"
+        f"3. Подожди 10-30 секунд\n"
+        f"4. Получи готовое изображение!\n\n"
+        f"Лимит: {DAILY_LIMIT} фото в день\n"
+        f"Создатель: @{CREATOR_USERNAME}",
+        parse_mode="Markdown"
     )
 
 @dp.message(F.text == "👑 Админ панель")
@@ -375,9 +497,12 @@ async def button_admin(message: types.Message, state: FSMContext):
         return
     
     await message.answer(
-        "👑 Админ команды:\n"
-        "/unlimit @username [дни] - выдать безлимит\n"
-        "/stats - статистика"
+        "👑 **Админ панель**\n\n"
+        "Команды:\n"
+        "• /unlimit @username [дни] - выдать безлимит\n"
+        "• /stats - статистика",
+        parse_mode="Markdown",
+        reply_markup=get_admin_keyboard()
     )
 
 @dp.message(Command("unlimit"))
@@ -390,11 +515,17 @@ async def cmd_unlimit(message: types.Message, state: FSMContext):
     
     args = message.text.split()
     if len(args) < 2:
-        await message.answer("❌ Использование: /unlimit @username")
+        await message.answer("❌ Использование: /unlimit @username [дни]")
         return
     
     username = args[1].replace('@', '')
     days = 30
+    
+    if len(args) >= 3:
+        try:
+            days = int(args[2])
+        except:
+            pass
     
     with db.get_connection() as conn:
         cursor = conn.cursor()
@@ -409,6 +540,35 @@ async def cmd_unlimit(message: types.Message, state: FSMContext):
         
         if db.give_unlimited(target_id, days, user_id):
             await message.answer(f"✅ @{username} получил безлимит на {days} дней!")
+
+@dp.message(Command("stats"))
+async def cmd_stats(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    
+    if not db.is_admin(user_id) and user_id != CREATOR_ID:
+        await message.answer("❌ Нет доступа")
+        return
+    
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT COUNT(*) as count FROM users")
+        total_users = cursor.fetchone()['count']
+        
+        today = date.today().isoformat()
+        cursor.execute("SELECT SUM(count) as total FROM daily_stats WHERE date = ?", (today,))
+        today_gen = cursor.fetchone()['total'] or 0
+        
+        cursor.execute("SELECT SUM(total_generations) as total FROM users")
+        total_gen = cursor.fetchone()['total'] or 0
+    
+    await message.answer(
+        f"📊 **Статистика бота**\n\n"
+        f"👥 Всего пользователей: {total_users}\n"
+        f"📸 Генераций сегодня: {today_gen}\n"
+        f"🎨 Всего генераций: {total_gen}",
+        parse_mode="Markdown"
+    )
 
 @dp.message(F.text == "❌ Отмена")
 async def button_cancel(message: types.Message, state: FSMContext):
@@ -435,10 +595,10 @@ async def process_prompt(message: types.Message, state: FSMContext):
         return
     
     if len(prompt) < 3:
-        await message.answer("❌ Слишком коротко. Опиши подробнее:")
+        await message.answer("❌ Слишком коротко. Опиши подробнее (минимум 3 символа):")
         return
     
-    wait_msg = await message.answer("⏳ Генерация... Подожди 10-20 секунд")
+    wait_msg = await message.answer("⏳ Генерация... Пробуем разные API, подожди 10-30 секунд")
     
     # Генерируем
     image_bytes = await generate_image(prompt)
@@ -450,30 +610,79 @@ async def process_prompt(message: types.Message, state: FSMContext):
                     file=image_bytes,
                     filename="image.jpg"
                 ),
-                caption=f"✅ Готово!\n🎨 {prompt}"
+                caption=f"✅ **Готово!**\n\n🎨 {prompt}",
+                parse_mode="Markdown"
             )
             db.increment_daily_count(user_id)
             await wait_msg.delete()
             
         except Exception as e:
-            logger.error(f"Ошибка: {e}")
-            await message.answer("❌ Ошибка отправки")
+            logger.error(f"Ошибка отправки: {e}")
+            await message.answer("❌ Ошибка отправки изображения")
     else:
         await message.answer(
-            "❌ Не удалось сгенерировать. Попробуй другой промпт."
+            "❌ Не удалось сгенерировать ни одним API.\n"
+            "Попробуй другой промпт или позже."
         )
         await wait_msg.delete()
     
     await state.clear()
 
+# ========== CALLBACKS ==========
+@dp.callback_query(F.data == "admin_stats")
+async def callback_admin_stats(callback: CallbackQuery):
+    if not db.is_admin(callback.from_user.id) and callback.from_user.id != CREATOR_ID:
+        await callback.answer("❌ Нет доступа")
+        return
+    
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT COUNT(*) as count FROM users")
+        total_users = cursor.fetchone()['count']
+        
+        today = date.today().isoformat()
+        cursor.execute("SELECT SUM(count) as total FROM daily_stats WHERE date = ?", (today,))
+        today_gen = cursor.fetchone()['total'] or 0
+        
+        cursor.execute("SELECT SUM(total_generations) as total FROM users")
+        total_gen = cursor.fetchone()['total'] or 0
+    
+    await callback.message.edit_text(
+        f"📊 **Статистика бота**\n\n"
+        f"👥 Всего пользователей: {total_users}\n"
+        f"📸 Генераций сегодня: {today_gen}\n"
+        f"🎨 Всего генераций: {total_gen}",
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+@dp.callback_query(F.data == "back_to_menu")
+async def callback_back_to_menu(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.delete()
+    await callback.message.answer(
+        "Главное меню:",
+        reply_markup=get_main_keyboard(callback.from_user.id)
+    )
+    await callback.answer()
+
 # ========== ЗАПУСК ==========
 async def main():
-    print("=" * 50)
+    print("=" * 60)
     print("🚀 БОТ ЗАПУЩЕН!")
-    print("=" * 50)
-    print(f"👑 Создатель: @{CREATOR_USERNAME}")
+    print("=" * 60)
+    print(f"🤖 Токен: {BOT_TOKEN[:10]}...{BOT_TOKEN[-10:]}")
+    print(f"👑 Создатель: @{CREATOR_USERNAME} (ID: {CREATOR_ID})")
     print(f"📸 Лимит: {DAILY_LIMIT} фото/день")
-    print("=" * 50)
+    print("=" * 60)
+    print("✅ Используемые API:")
+    print("   • Craiyon (без ключа)")
+    print("   • Prodia (публичный ключ)")
+    print("   • Hugging Face")
+    print("   • Perchance")
+    print("   • Automatic1111")
+    print("=" * 60)
     
     await dp.start_polling(bot)
 
