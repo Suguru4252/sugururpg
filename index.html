@@ -2,164 +2,91 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AutoClicker Mobile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Mobile AutoClicker</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app">
-        <!-- Header с анимацией -->
-        <div class="header">
-            <div class="header-content">
-                <div class="logo-wrapper">
-                    <div class="logo-icon">
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="8"/>
-                            <circle cx="12" cy="12" r="2" fill="currentColor"/>
-                            <path d="M12 4V2M12 22V20M20 12H22M2 12H4M19.07 4.93L20.5 3.5M3.5 20.5L4.93 19.07M4.93 4.93L3.5 3.5M20.5 20.5L19.07 19.07" stroke-linecap="round"/>
-                        </svg>
-                    </div>
-                    <h1>AutoClicker <span class="highlight">Pro</span></h1>
-                </div>
-                <div class="connection-status" id="connectionStatus">
-                    <span class="status-dot"></span>
-                    <span>Готов к работе</span>
-                </div>
+    <!-- Плавающее меню (всегда сверху) -->
+    <div class="floating-menu" id="floatingMenu">
+        <div class="menu-header">
+            <div class="menu-title">
+                <span class="menu-icon">⚡</span>
+                <span>AutoClicker</span>
+            </div>
+            <div class="menu-controls">
+                <button class="menu-btn" id="toggleMenuBtn">−</button>
             </div>
         </div>
-
-        <!-- Основной контент -->
-        <div class="main-content">
-            <!-- Панель управления -->
-            <div class="control-panel">
-                <div class="panel-section">
-                    <h2>Интервал кликов</h2>
-                    <div class="interval-controls">
-                        <div class="interval-display">
-                            <span class="interval-value" id="intervalDisplay">500</span>
-                            <span class="interval-unit">мс</span>
-                        </div>
-                        <input type="range" id="intervalSlider" class="interval-slider" min="10" max="5000" value="500" step="10">
-                        <div class="interval-presets">
-                            <button class="preset-btn" data-value="100">0.1с</button>
-                            <button class="preset-btn" data-value="500">0.5с</button>
-                            <button class="preset-btn" data-value="1000">1с</button>
-                            <button class="preset-btn" data-value="2000">2с</button>
-                            <button class="preset-btn" data-value="5000">5с</button>
-                        </div>
-                    </div>
+        
+        <div class="menu-content" id="menuContent">
+            <!-- Скорость кликов -->
+            <div class="control-group">
+                <label>Скорость кликов</label>
+                <div class="speed-control">
+                    <button class="speed-btn" id="speedDown">−</button>
+                    <span class="speed-value" id="speedValue">10</span>
+                    <span class="speed-unit">/сек</span>
+                    <button class="speed-btn" id="speedUp">+</button>
                 </div>
-
-                <div class="panel-section">
-                    <h2>Тип клика</h2>
-                    <div class="click-type-selector">
-                        <label class="click-type-option">
-                            <input type="radio" name="clickType" value="single" checked>
-                            <span class="radio-custom"></span>
-                            <span class="radio-label">Одиночный</span>
-                        </label>
-                        <label class="click-type-option">
-                            <input type="radio" name="clickType" value="double">
-                            <span class="radio-custom"></span>
-                            <span class="radio-label">Двойной</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="panel-section">
-                    <h2>Кнопка мыши</h2>
-                    <div class="mouse-buttons">
-                        <button class="mouse-btn active" data-button="left">Левая</button>
-                        <button class="mouse-btn" data-button="middle">Средняя</button>
-                        <button class="mouse-btn" data-button="right">Правая</button>
-                    </div>
-                </div>
-
-                <div class="panel-section">
-                    <h2>Режим кликов</h2>
-                    <div class="mode-selector">
-                        <label class="mode-option">
-                            <input type="radio" name="clickMode" value="continuous" checked>
-                            <span class="mode-indicator"></span>
-                            <span>Непрерывно</span>
-                        </label>
-                        <label class="mode-option">
-                            <input type="radio" name="clickMode" value="limited">
-                            <span class="mode-indicator"></span>
-                            <span>Ограничено</span>
-                        </label>
-                    </div>
-                    <div class="limit-control" id="limitControl" style="display: none;">
-                        <input type="number" id="clickLimit" value="10" min="1" max="1000">
-                        <span>кликов</span>
-                    </div>
+                <input type="range" id="speedSlider" class="speed-slider" min="1" max="30" value="10" step="1">
+            </div>
+            
+            <!-- Управление кружками -->
+            <div class="control-group">
+                <label>Количество кружков</label>
+                <div class="circles-control">
+                    <button class="circle-btn" id="removeCircle">−</button>
+                    <span class="circle-count" id="circleCount">1</span>
+                    <button class="circle-btn" id="addCircle">+</button>
                 </div>
             </div>
-
-            <!-- Большая кнопка запуска -->
-            <div class="start-stop-section">
-                <button class="action-btn" id="actionBtn">
-                    <div class="btn-content">
-                        <span class="btn-icon">▶</span>
-                        <span class="btn-text">Запустить</span>
-                    </div>
-                    <div class="btn-glow"></div>
+            
+            <!-- Тип клика -->
+            <div class="control-group">
+                <label>Тип клика</label>
+                <div class="click-type">
+                    <button class="type-btn active" data-type="single">Одиночный</button>
+                    <button class="type-btn" data-type="double">Двойной</button>
+                </div>
+            </div>
+            
+            <!-- Кнопки управления -->
+            <div class="action-buttons">
+                <button class="action-btn start-btn" id="startBtn">
+                    <span class="btn-icon">▶</span>
+                    <span>Запустить</span>
+                </button>
+                <button class="action-btn stop-btn" id="stopBtn" disabled>
+                    <span class="btn-icon">⏹</span>
+                    <span>Стоп</span>
                 </button>
             </div>
-
+            
             <!-- Статистика -->
-            <div class="stats-panel">
+            <div class="stats">
                 <div class="stat-item">
-                    <span class="stat-label">Выполнено кликов:</span>
+                    <span class="stat-label">Кликов:</span>
                     <span class="stat-value" id="clickCount">0</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Таймер:</span>
+                    <span class="stat-label">Время:</span>
                     <span class="stat-value" id="timer">00:00</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">CPS:</span>
-                    <span class="stat-value" id="cps">0.0</span>
-                </div>
-            </div>
-
-            <!-- Тестовая область для кликов -->
-            <div class="test-area" id="testArea">
-                <div class="test-area-content">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M12 8v8M8 12h8" stroke-linecap="round"/>
-                    </svg>
-                    <p>Нажми сюда для теста</p>
-                    <span class="test-hint">(клики будут здесь)</span>
-                </div>
-                <div class="click-ripple" id="clickRipple"></div>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="footer">
-            <div class="footer-content">
-                <span>⚡ Работает на всех устройствах</span>
-                <div class="footer-dots">
-                    <span class="dot"></span>
-                    <span class="dot"></span>
-                    <span class="dot"></span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- СЕКРЕТНАЯ ПАСХАЛКА -->
-    <div class="easter-egg" id="easterEgg">⚡ Ваня - Декстер ⚡</div>
-    
-    <!-- Триггер для пасхалки (невидимая кнопка) -->
-    <div class="easter-egg-trigger" id="easterTrigger"></div>
+    <!-- Контейнер для кружков -->
+    <div class="circles-container" id="circlesContainer"></div>
 
-    <!-- Уведомления -->
-    <div class="notification" id="notification"></div>
+    <!-- Кнопка быстрого доступа (когда меню скрыто) -->
+    <button class="quick-access" id="quickAccess">⚡</button>
+
+    <!-- Пасхалка -->
+    <div class="easter-egg" id="easterEgg">⚡ Ваня - Декстер ⚡</div>
 
     <script src="script.js"></script>
 </body>
-    </html>
+</html>
