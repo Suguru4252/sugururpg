@@ -1,92 +1,714 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mobile AutoClicker</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>⚡ АВТОКЛИКЕР</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            background: black;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        /* ПЛАВАЮЩИЙ КРУЖОК (кликер) */
+        .clicker-circle {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 40px;
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            border: 4px solid white;
+            box-shadow: 0 10px 30px rgba(255,75,43,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999999;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s;
+        }
+
+        .clicker-circle.active {
+            transform: translate(-50%, -50%) scale(1.2);
+            background: linear-gradient(135deg, #ff4b2b, #ff416c);
+        }
+
+        .clicker-circle.dragging {
+            transform: translate(-50%, -50%) scale(1.1);
+            opacity: 0.8;
+            border-color: yellow;
+        }
+
+        .circle-inner {
+            width: 60px;
+            height: 60px;
+            border-radius: 30px;
+            background: rgba(255,255,255,0.3);
+            border: 2px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 30px;
+            font-weight: bold;
+        }
+
+        /* ПЛАВАЮЩЕЕ МЕНЮ (всегда с краю) */
+        .side-menu {
+            position: absolute;
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            width: 250px;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(10px);
+            border: 2px solid #ff4b2b;
+            border-right: none;
+            border-radius: 20px 0 0 20px;
+            padding: 20px 15px;
+            color: white;
+            z-index: 999998;
+            box-shadow: -5px 0 30px rgba(255,75,43,0.3);
+            transition: right 0.3s;
+        }
+
+        .side-menu.hidden {
+            right: -250px;
+        }
+
+        .menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ff4b2b;
+        }
+
+        .menu-header h2 {
+            font-size: 16px;
+            color: #ff4b2b;
+            text-transform: uppercase;
+        }
+
+        .menu-toggle {
+            width: 35px;
+            height: 35px;
+            border-radius: 20px;
+            background: #ff4b2b;
+            border: none;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .menu-toggle:active {
+            background: #ff6b4b;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-group label {
+            display: block;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        /* ВЫБОР ВРЕМЕНИ (от 1мс до 60 минут) */
+        .time-picker {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .time-picker input {
+            flex: 2;
+            background: #222;
+            border: 2px solid #ff4b2b;
+            border-radius: 10px;
+            padding: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .time-picker select {
+            flex: 1;
+            background: #222;
+            border: 2px solid #ff4b2b;
+            border-radius: 10px;
+            padding: 12px;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        /* КНОПКИ-ПРЕСЕТЫ */
+        .presets {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .preset-btn {
+            background: #222;
+            border: 1px solid #ff4b2b;
+            border-radius: 8px;
+            padding: 8px;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .preset-btn:active {
+            background: #ff4b2b;
+        }
+
+        .preset-btn.selected {
+            background: #ff4b2b;
+        }
+
+        /* КНОПКИ СТАРТ/СТОП */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 18px;
+            border: none;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        .action-btn.start {
+            background: linear-gradient(135deg, #00b09b, #96c93d);
+        }
+
+        .action-btn.stop {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* СТАТИСТИКА */
+        .stats {
+            background: #111;
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #ff4b2b;
+        }
+
+        .stats-number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #ff4b2b;
+            line-height: 1.2;
+        }
+
+        .stats-label {
+            font-size: 11px;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+        }
+
+        .stats-item {
+            text-align: center;
+        }
+
+        .stats-item .value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ff4b2b;
+        }
+
+        .stats-item .label {
+            font-size: 10px;
+            color: #aaa;
+        }
+
+        /* ПОДСКАЗКА ДЛЯ ПЕРЕТАСКИВАНИЯ */
+        .drag-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            border: 2px solid #ff4b2b;
+            z-index: 9999999;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .drag-hint.show {
+            opacity: 1;
+        }
+
+        /* ПАСХАЛКА */
+        .easter-egg {
+            position: fixed;
+            bottom: -100px;
+            right: -100px;
+            background: linear-gradient(135deg, gold, orange, red);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 50px;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 9999999;
+            opacity: 0;
+            transition: all 0.5s;
+            box-shadow: 0 0 30px gold;
+            text-shadow: 2px 2px 0 black;
+        }
+
+        .easter-egg.show {
+            bottom: 30px;
+            right: 30px;
+            opacity: 1;
+        }
+
+        /* УВЕДОМЛЕНИЕ */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            border: 2px solid #ff4b2b;
+            z-index: 9999999;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
 </head>
 <body>
-    <!-- Плавающее меню (всегда сверху) -->
-    <div class="floating-menu" id="floatingMenu">
-        <div class="menu-header">
-            <div class="menu-title">
-                <span class="menu-icon">⚡</span>
-                <span>AutoClicker</span>
-            </div>
-            <div class="menu-controls">
-                <button class="menu-btn" id="toggleMenuBtn">−</button>
-            </div>
+
+<!-- ПЛАВАЮЩИЙ КРУЖОК (всегда на экране) -->
+<div class="clicker-circle" id="clickerCircle">
+    <div class="circle-inner">⚡</div>
+</div>
+
+<!-- ПЛАВАЮЩЕЕ МЕНЮ (сбоку) -->
+<div class="side-menu" id="sideMenu">
+    <div class="menu-header">
+        <h2>⚡ АВТОКЛИКЕР</h2>
+        <button class="menu-toggle" id="menuToggle">◀</button>
+    </div>
+
+    <!-- НАСТРОЙКА ВРЕМЕНИ (от 1мс до 60 минут) -->
+    <div class="setting-group">
+        <label>⏱ ЧАСТОТА КЛИКОВ</label>
+        <div class="time-picker">
+            <input type="number" id="intervalValue" value="1" min="1" max="3600">
+            <select id="intervalUnit">
+                <option value="1">мс</option>
+                <option value="1000" selected>сек</option>
+                <option value="60000">мин</option>
+                <option value="3600000">час</option>
+            </select>
         </div>
         
-        <div class="menu-content" id="menuContent">
-            <!-- Скорость кликов -->
-            <div class="control-group">
-                <label>Скорость кликов</label>
-                <div class="speed-control">
-                    <button class="speed-btn" id="speedDown">−</button>
-                    <span class="speed-value" id="speedValue">10</span>
-                    <span class="speed-unit">/сек</span>
-                    <button class="speed-btn" id="speedUp">+</button>
-                </div>
-                <input type="range" id="speedSlider" class="speed-slider" min="1" max="30" value="10" step="1">
-            </div>
-            
-            <!-- Управление кружками -->
-            <div class="control-group">
-                <label>Количество кружков</label>
-                <div class="circles-control">
-                    <button class="circle-btn" id="removeCircle">−</button>
-                    <span class="circle-count" id="circleCount">1</span>
-                    <button class="circle-btn" id="addCircle">+</button>
-                </div>
-            </div>
-            
-            <!-- Тип клика -->
-            <div class="control-group">
-                <label>Тип клика</label>
-                <div class="click-type">
-                    <button class="type-btn active" data-type="single">Одиночный</button>
-                    <button class="type-btn" data-type="double">Двойной</button>
-                </div>
-            </div>
-            
-            <!-- Кнопки управления -->
-            <div class="action-buttons">
-                <button class="action-btn start-btn" id="startBtn">
-                    <span class="btn-icon">▶</span>
-                    <span>Запустить</span>
-                </button>
-                <button class="action-btn stop-btn" id="stopBtn" disabled>
-                    <span class="btn-icon">⏹</span>
-                    <span>Стоп</span>
-                </button>
-            </div>
-            
-            <!-- Статистика -->
-            <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-label">Кликов:</span>
-                    <span class="stat-value" id="clickCount">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Время:</span>
-                    <span class="stat-value" id="timer">00:00</span>
-                </div>
-            </div>
+        <!-- КНОПКИ БЫСТРОЙ НАСТРОЙКИ -->
+        <div class="presets">
+            <button class="preset-btn" data-ms="1">1мс</button>
+            <button class="preset-btn" data-ms="10">10мс</button>
+            <button class="preset-btn" data-ms="100">0.1с</button>
+            <button class="preset-btn" data-ms="500">0.5с</button>
+            <button class="preset-btn" data-ms="1000">1с</button>
+            <button class="preset-btn" data-ms="5000">5с</button>
+            <button class="preset-btn" data-ms="10000">10с</button>
+            <button class="preset-btn" data-ms="60000">1мин</button>
+            <button class="preset-btn" data-ms="3600000">1час</button>
         </div>
     </div>
 
-    <!-- Контейнер для кружков -->
-    <div class="circles-container" id="circlesContainer"></div>
+    <!-- КНОПКИ СТАРТ/СТОП -->
+    <div class="action-buttons">
+        <button class="action-btn start" id="startBtn">
+            <span>▶</span> СТАРТ
+        </button>
+        <button class="action-btn stop" id="stopBtn" disabled>
+            <span>⏹</span> СТОП
+        </button>
+    </div>
 
-    <!-- Кнопка быстрого доступа (когда меню скрыто) -->
-    <button class="quick-access" id="quickAccess">⚡</button>
+    <!-- СТАТИСТИКА -->
+    <div class="stats">
+        <div class="stats-number" id="clickCount">0</div>
+        <div class="stats-label">ВСЕГО КЛИКОВ</div>
+        
+        <div class="stats-row">
+            <div class="stats-item">
+                <div class="value" id="timer">00:00</div>
+                <div class="label">ВРЕМЯ</div>
+            </div>
+            <div class="stats-item">
+                <div class="value" id="cps">0</div>
+                <div class="label">КЛИК/СЕК</div>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <!-- Пасхалка -->
-    <div class="easter-egg" id="easterEgg">⚡ Ваня - Декстер ⚡</div>
+<!-- ПОДСКАЗКА -->
+<div class="drag-hint" id="dragHint">👆 ПЕРЕМЕСТИ КРУЖОК</div>
 
-    <script src="script.js"></script>
+<!-- УВЕДОМЛЕНИЕ -->
+<div class="toast" id="toast"></div>
+
+<!-- ПАСХАЛКА ВАНЯ-ДЕКСТЕР -->
+<div class="easter-egg" id="easterEgg">⚡ ВАНЯ - ДЕКСТЕР ⚡</div>
+
+<script>
+    // ========== ОСНОВНОЙ КОД АВТОКЛИКЕРА ==========
+    class AutoClicker {
+        constructor() {
+            this.isRunning = false;
+            this.clickCount = 0;
+            this.startTime = null;
+            this.interval = 1000; // 1 секунда по умолчанию
+            this.timer = null;
+            this.clickTimer = null;
+            this.cps = 0;
+            this.cpsCount = 0;
+            
+            // Для перетаскивания
+            this.isDragging = false;
+            this.dragOffsetX = 0;
+            this.dragOffsetY = 0;
+            
+            // Элементы
+            this.circle = document.getElementById('clickerCircle');
+            this.menu = document.getElementById('sideMenu');
+            this.menuToggle = document.getElementById('menuToggle');
+            this.startBtn = document.getElementById('startBtn');
+            this.stopBtn = document.getElementById('stopBtn');
+            this.intervalValue = document.getElementById('intervalValue');
+            this.intervalUnit = document.getElementById('intervalUnit');
+            this.presetBtns = document.querySelectorAll('.preset-btn');
+            this.clickCountEl = document.getElementById('clickCount');
+            this.timerEl = document.getElementById('timer');
+            this.cpsEl = document.getElementById('cps');
+            this.dragHint = document.getElementById('dragHint');
+            this.toast = document.getElementById('toast');
+            this.easterEgg = document.getElementById('easterEgg');
+            
+            // Инициализация
+            this.loadSettings();
+            this.setupEvents();
+            this.checkEasterEgg();
+        }
+
+        setupEvents() {
+            // Перетаскивание кружка
+            this.circle.addEventListener('touchstart', (e) => this.startDrag(e));
+            this.circle.addEventListener('touchmove', (e) => this.drag(e));
+            this.circle.addEventListener('touchend', () => this.endDrag());
+            
+            // Сворачивание меню
+            this.menuToggle.addEventListener('click', () => {
+                this.menu.classList.toggle('hidden');
+                this.menuToggle.textContent = this.menu.classList.contains('hidden') ? '▶' : '◀';
+                this.showToast(this.menu.classList.contains('hidden') ? 'Меню скрыто' : 'Меню открыто');
+            });
+            
+            // Старт/Стоп
+            this.startBtn.addEventListener('click', () => this.start());
+            this.stopBtn.addEventListener('click', () => this.stop());
+            
+            // Пресеты времени
+            this.presetBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const ms = parseInt(btn.dataset.ms);
+                    this.setIntervalFromMs(ms);
+                    
+                    // Подсветка выбранной кнопки
+                    this.presetBtns.forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    
+                    this.showToast(`Интервал: ${this.formatTime(ms)}`);
+                });
+            });
+            
+            // Сохранение настроек
+            this.intervalValue.addEventListener('change', () => this.saveSettings());
+            this.intervalUnit.addEventListener('change', () => this.saveSettings());
+        }
+
+        startDrag(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = this.circle.getBoundingClientRect();
+            
+            this.isDragging = true;
+            this.dragOffsetX = touch.clientX - rect.left - rect.width/2;
+            this.dragOffsetY = touch.clientY - rect.top - rect.height/2;
+            
+            this.circle.classList.add('dragging');
+            this.dragHint.classList.add('show');
+            
+            setTimeout(() => {
+                this.dragHint.classList.remove('show');
+            }, 2000);
+        }
+
+        drag(e) {
+            if (!this.isDragging) return;
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            let x = touch.clientX - this.dragOffsetX;
+            let y = touch.clientY - this.dragOffsetY;
+            
+            // Ограничение краями экрана
+            x = Math.max(0, Math.min(window.innerWidth - 80, x));
+            y = Math.max(0, Math.min(window.innerHeight - 80, y));
+            
+            this.circle.style.left = x + 'px';
+            this.circle.style.top = y + 'px';
+            this.circle.style.transform = 'none';
+        }
+
+        endDrag() {
+            this.isDragging = false;
+            this.circle.classList.remove('dragging');
+            
+            // Сохраняем позицию
+            localStorage.setItem('circleX', this.circle.style.left);
+            localStorage.setItem('circleY', this.circle.style.top);
+        }
+
+        getIntervalMs() {
+            const value = parseInt(this.intervalValue.value);
+            const multiplier = parseInt(this.intervalUnit.value);
+            return value * multiplier;
+        }
+
+        setIntervalFromMs(ms) {
+            if (ms < 1000) {
+                this.intervalValue.value = ms;
+                this.intervalUnit.value = '1';
+            } else if (ms < 60000) {
+                this.intervalValue.value = ms / 1000;
+                this.intervalUnit.value = '1000';
+            } else if (ms < 3600000) {
+                this.intervalValue.value = ms / 60000;
+                this.intervalUnit.value = '60000';
+            } else {
+                this.intervalValue.value = ms / 3600000;
+                this.intervalUnit.value = '3600000';
+            }
+            
+            this.saveSettings();
+        }
+
+        formatTime(ms) {
+            if (ms < 1000) return ms + 'мс';
+            if (ms < 60000) return (ms/1000) + 'сек';
+            if (ms < 3600000) return (ms/60000) + 'мин';
+            return (ms/3600000) + 'час';
+        }
+
+        start() {
+            if (this.isRunning) return;
+            
+            this.isRunning = true;
+            this.startTime = Date.now() - (this.clickCount * this.getIntervalMs());
+            
+            this.startBtn.disabled = true;
+            this.stopBtn.disabled = false;
+            
+            const interval = this.getIntervalMs();
+            
+            // Запускаем клики
+            this.clickTimer = setInterval(() => {
+                this.click();
+            }, interval);
+            
+            // Таймер и CPS
+            this.timer = setInterval(() => {
+                this.updateTimer();
+                this.updateCPS();
+            }, 100);
+            
+            this.showToast('✅ АВТОКЛИКЕР ЗАПУЩЕН');
+        }
+
+        stop() {
+            this.isRunning = false;
+            
+            clearInterval(this.clickTimer);
+            clearInterval(this.timer);
+            
+            this.startBtn.disabled = false;
+            this.stopBtn.disabled = true;
+            
+            this.showToast('⏹ АВТОКЛИКЕР ОСТАНОВЛЕН');
+        }
+
+        click() {
+            this.clickCount++;
+            this.cpsCount++;
+            
+            this.clickCountEl.textContent = this.clickCount;
+            
+            // Анимация кружка
+            this.circle.classList.add('active');
+            setTimeout(() => {
+                this.circle.classList.remove('active');
+            }, 50);
+            
+            // Вибрация (если есть)
+            if (navigator.vibrate) {
+                navigator.vibrate(10);
+            }
+            
+            // Сохраняем статистику
+            localStorage.setItem('totalClicks', this.clickCount);
+        }
+
+        updateTimer() {
+            if (!this.startTime) return;
+            
+            const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            
+            this.timerEl.textContent = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+        }
+
+        updateCPS() {
+            this.cps = this.cpsCount;
+            this.cpsCount = 0;
+            this.cpsEl.textContent = this.cps;
+        }
+
+        loadSettings() {
+            // Загружаем позицию кружка
+            const savedX = localStorage.getItem('circleX');
+            const savedY = localStorage.getItem('circleY');
+            
+            if (savedX && savedY) {
+                this.circle.style.left = savedX;
+                this.circle.style.top = savedY;
+                this.circle.style.transform = 'none';
+            }
+            
+            // Загружаем настройки интервала
+            const savedInterval = localStorage.getItem('intervalValue');
+            const savedUnit = localStorage.getItem('intervalUnit');
+            
+            if (savedInterval) this.intervalValue.value = savedInterval;
+            if (savedUnit) this.intervalUnit.value = savedUnit;
+            
+            // Загружаем статистику
+            const savedClicks = localStorage.getItem('totalClicks');
+            if (savedClicks) {
+                this.clickCount = parseInt(savedClicks);
+                this.clickCountEl.textContent = this.clickCount;
+            }
+        }
+
+        saveSettings() {
+            localStorage.setItem('intervalValue', this.intervalValue.value);
+            localStorage.setItem('intervalUnit', this.intervalUnit.value);
+        }
+
+        showToast(text) {
+            this.toast.textContent = text;
+            this.toast.classList.add('show');
+            setTimeout(() => {
+                this.toast.classList.remove('show');
+            }, 1500);
+        }
+
+        checkEasterEgg() {
+            let clickCount = 0;
+            
+            // Пасхалка на заголовок
+            document.querySelector('.menu-header h2').addEventListener('click', () => {
+                clickCount++;
+                
+                if (clickCount >= 7) {
+                    this.easterEgg.classList.add('show');
+                    
+                    if (navigator.vibrate) {
+                        navigator.vibrate([100,50,100,50,200]);
+                    }
+                    
+                    setTimeout(() => {
+                        this.easterEgg.classList.remove('show');
+                    }, 3000);
+                    
+                    clickCount = 0;
+                }
+            });
+        }
+    }
+
+    // Запуск
+    window.onload = () => {
+        new AutoClicker();
+    };
+</script>
 </body>
-</html>
+    </html>
