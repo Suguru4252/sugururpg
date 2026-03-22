@@ -3,162 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Rucoy Online - 2D MMORPG</title>
+    <title>Rucoy Online - Пиксельная MMORPG</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             user-select: none;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
         }
 
         body {
             background: #0a0c15;
-            font-family: 'Courier New', monospace;
+            font-family: 'Courier New', 'VT323', monospace;
             overflow: hidden;
             height: 100vh;
             width: 100vw;
         }
 
-        /* Панели */
+        /* Пиксельные рамки */
+        .pixel-border {
+            border: 3px solid #5a4a2e;
+            box-shadow: inset 0 0 0 2px #d4b87a;
+        }
+
         .top-panel {
             background: #1a1a1a;
-            padding: 8px 16px;
+            padding: 6px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid #ffaa33;
+            border-bottom: 4px solid #d4b87a;
             flex-wrap: wrap;
             gap: 8px;
-            position: relative;
-            z-index: 5;
         }
 
         .stat {
-            background: #2a2a2a;
+            background: #2a2418;
             padding: 4px 12px;
-            border-radius: 4px;
             font-size: 14px;
-            color: #ffaa66;
+            color: #ffcc88;
+            font-weight: bold;
+            border-left: 3px solid #d4b87a;
         }
 
         .stat span {
-            color: white;
-            font-weight: bold;
+            color: #ffaa44;
         }
 
-        /* Canvas игрового поля */
         .game-area {
             position: relative;
             flex: 1;
-            background: #2a4a2a;
-            overflow: hidden;
+            background: #1e2a1a;
+            overflow: auto;
+            cursor: crosshair;
         }
 
         canvas {
             display: block;
-            width: 100%;
-            height: 100%;
+            margin: 0 auto;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
             cursor: crosshair;
         }
 
-        /* Нижняя панель */
         .bottom-panel {
             background: #1a1a1a;
-            padding: 10px;
+            padding: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-top: 2px solid #ffaa33;
+            border-top: 4px solid #d4b87a;
             flex-wrap: wrap;
             gap: 8px;
         }
 
         .class-selector {
             display: flex;
-            gap: 8px;
+            gap: 6px;
         }
 
         .class-btn {
-            background: #2a2a2a;
-            border: none;
+            background: #2a2418;
+            border: 2px solid #5a4a2e;
             padding: 8px 16px;
             font-family: monospace;
             font-weight: bold;
-            font-size: 14px;
-            color: #ffaa66;
+            font-size: 12px;
+            color: #d4b87a;
             cursor: pointer;
-            border-radius: 4px;
-            transition: 0.1s;
         }
 
         .class-btn.active {
-            background: #ffaa33;
-            color: #1a1a1a;
-            box-shadow: 0 0 10px #ffaa33;
-        }
-
-        .class-btn:active {
-            transform: scale(0.95);
+            background: #4a3a22;
+            border-color: #ffcc66;
+            color: #ffdd99;
+            text-shadow: 0 0 3px #ffaa33;
         }
 
         .action-btn {
-            background: #3a2a1a;
-            border: none;
+            background: #2a2418;
+            border: 2px solid #5a4a2e;
             padding: 8px 16px;
             font-family: monospace;
             font-weight: bold;
-            color: #ffaa66;
+            color: #d4b87a;
             cursor: pointer;
-            border-radius: 4px;
         }
 
         .action-btn:active {
-            transform: scale(0.95);
+            transform: translateY(2px);
         }
 
-        /* Лог боя */
         .battle-log {
             position: absolute;
             bottom: 10px;
             right: 10px;
-            width: 280px;
-            height: 180px;
+            width: 260px;
+            height: 160px;
             background: rgba(0,0,0,0.85);
-            border: 1px solid #ffaa33;
-            border-radius: 8px;
-            padding: 8px;
+            border: 2px solid #d4b87a;
+            padding: 6px;
             overflow-y: auto;
-            font-size: 11px;
-            color: #aaffaa;
+            font-size: 10px;
+            color: #8faa6a;
+            font-family: monospace;
             z-index: 10;
             pointer-events: none;
-            font-family: monospace;
         }
 
         .log-entry {
-            padding: 3px 0;
-            border-bottom: 1px solid #333;
+            padding: 2px 0;
+            border-bottom: 1px solid #2a2a1a;
         }
 
-        /* Урон */
         .damage-popup {
             position: absolute;
             font-weight: bold;
             font-size: 18px;
             font-family: monospace;
-            text-shadow: 1px 1px 0 black;
+            text-shadow: 2px 2px 0 black;
             pointer-events: none;
             z-index: 20;
-            animation: floatUp 0.8s ease-out forwards;
+            animation: floatUp 0.7s ease-out forwards;
         }
 
         @keyframes floatUp {
             0% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-50px); }
+            100% { opacity: 0; transform: translateY(-45px); }
         }
 
-        /* Модальные окна */
         .modal {
             display: none;
             position: fixed;
@@ -173,11 +168,10 @@
         }
 
         .modal-content {
-            background: #1e1a12;
-            border: 2px solid #ffaa33;
-            border-radius: 12px;
-            padding: 24px;
-            max-width: 400px;
+            background: #2a2418;
+            border: 4px solid #d4b87a;
+            padding: 20px;
+            max-width: 350px;
             width: 90%;
             color: #ffdd99;
             max-height: 80vh;
@@ -187,8 +181,8 @@
         .modal-title {
             font-size: 20px;
             text-align: center;
-            margin-bottom: 20px;
-            color: #ffaa33;
+            margin-bottom: 16px;
+            color: #ffcc66;
         }
 
         .close-btn {
@@ -197,37 +191,34 @@
             text-align: center;
             margin-top: 16px;
             cursor: pointer;
-            border-radius: 8px;
+            border: 1px solid #d4b87a;
         }
 
         .inventory-item, .skill-item {
-            background: #2a2418;
-            padding: 10px;
+            background: #1e1a12;
+            padding: 8px;
             margin: 6px 0;
-            border-radius: 6px;
             display: flex;
             justify-content: space-between;
+            border-left: 3px solid #ffaa66;
         }
 
-        /* Вход */
         .login-input {
             width: 100%;
             padding: 12px;
             background: #0a0a0a;
-            border: 1px solid #ffaa33;
-            border-radius: 8px;
+            border: 2px solid #d4b87a;
             color: #ffdd99;
             font-size: 16px;
             margin: 10px 0;
             text-align: center;
+            font-family: monospace;
         }
 
         .login-btn {
-            background: #ffaa33;
-            color: #1a1a1a;
+            background: #5a4a2e;
             padding: 12px;
             text-align: center;
-            border-radius: 8px;
             margin: 8px 0;
             cursor: pointer;
             font-weight: bold;
@@ -235,10 +226,9 @@
 
         .save-status {
             font-size: 10px;
-            color: #88ff88;
             background: #2a5a2a;
             padding: 2px 8px;
-            border-radius: 12px;
+            color: #aaffaa;
         }
     </style>
 </head>
@@ -247,12 +237,10 @@
 <div id="loginModal" class="modal" style="display: flex;">
     <div class="modal-content">
         <div class="modal-title">⚔️ RUCOY ONLINE ⚔️</div>
-        <input type="text" id="playerNameInput" class="login-input" placeholder="Введите имя персонажа" maxlength="16">
+        <input type="text" id="playerNameInput" class="login-input" placeholder="Имя персонажа" maxlength="16">
         <div class="login-btn" onclick="login()">🎮 ВОЙТИ</div>
-        <div class="login-btn" style="background:#3a2a1a;" onclick="guestLogin()">👤 ИГРАТЬ ГОСТЕМ</div>
-        <div style="font-size: 11px; text-align: center; margin-top: 12px; color:#88aa88;">
-            💾 Прогресс сохраняется автоматически
-        </div>
+        <div class="login-btn" style="background:#3a2a1a;" onclick="guestLogin()">👤 ГОСТЬ</div>
+        <div style="font-size: 10px; text-align: center; margin-top: 12px;">💾 Автосохранение</div>
     </div>
 </div>
 
@@ -270,8 +258,8 @@
     <canvas id="gameCanvas"></canvas>
     <div class="battle-log" id="battleLog">
         <div class="log-entry">✨ Добро пожаловать в Rucoy Online!</div>
-        <div class="log-entry">⚔️ Кликай по врагам, чтобы атаковать</div>
-        <div class="log-entry">🏃 Двигай мышкой/пальцем, чтобы ходить</div>
+        <div class="log-entry">👆 Нажми на клетку, чтобы переместиться</div>
+        <div class="log-entry">⚔️ Нажми на монстра, чтобы атаковать</div>
     </div>
 </div>
 
@@ -307,25 +295,162 @@
 </div>
 
 <script>
-    // ========== КАНВАС ==========
+    // ========== НАСТРОЙКИ ==========
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    let cw = 800, ch = 500;
-
-    function resize() {
-        const area = document.querySelector('.game-area');
-        cw = area.clientWidth;
-        ch = area.clientHeight;
-        canvas.width = cw;
-        canvas.height = ch;
-        if (player) {
-            player.x = Math.min(Math.max(player.x, 40), cw - 40);
-            player.y = Math.min(Math.max(player.y, 40), ch - 40);
+    ctx.imageSmoothingEnabled = false;
+    
+    let TILE_SIZE = 48;      // Размер клетки (пиксельная сетка)
+    let MAP_WIDTH = 20;      // 20x15 карта
+    let MAP_HEIGHT = 15;
+    let canvasWidth, canvasHeight;
+    
+    // Карта (тайлы: 0-трава, 1-земля, 2-дерево, 3-камень)
+    let map = [];
+    
+    function generateMap() {
+        for (let y = 0; y < MAP_HEIGHT; y++) {
+            map[y] = [];
+            for (let x = 0; x < MAP_WIDTH; x++) {
+                if (x === 0 || y === 0 || x === MAP_WIDTH-1 || y === MAP_HEIGHT-1) {
+                    map[y][x] = 3; // стена
+                } else if (Math.random() < 0.05) {
+                    map[y][x] = 2; // дерево
+                } else if (Math.random() < 0.03) {
+                    map[y][x] = 1; // камень
+                } else {
+                    map[y][x] = 0; // трава
+                }
+            }
         }
-        draw();
     }
-    window.addEventListener('resize', resize);
-
+    
+    // Пиксельные цвета тайлов
+    const tileColors = {
+        0: { main: "#3a7a2a", dark: "#2a5a1a", light: "#4a9a3a" },  // трава
+        1: { main: "#6a6a6a", dark: "#4a4a4a", light: "#8a8a8a" },  // камень
+        2: { main: "#4a3a1a", dark: "#2a1a0a", light: "#6a5a3a" },  // дерево
+        3: { main: "#5a5a5a", dark: "#3a3a3a", light: "#7a7a7a" }    // стена
+    };
+    
+    // ========== ПИКСЕЛЬНЫЙ ГЕРОЙ ==========
+    function drawPixelHero(x, y, isMoving, direction, classType) {
+        const px = x * TILE_SIZE;
+        const py = y * TILE_SIZE;
+        
+        // Цвета для класса
+        let armorColor, skinColor = "#f5d0a9", pantsColor = "#4a6a3a";
+        if (classType === "sword") armorColor = "#6a8a5a";
+        else if (classType === "bow") armorColor = "#8a6a4a";
+        else armorColor = "#5a6a8a";
+        
+        // Пиксельный герой 32x32 внутри клетки 48x48
+        const offsetX = (TILE_SIZE - 32) / 2;
+        const offsetY = (TILE_SIZE - 32) / 2 + 4;
+        
+        // Тело (пиксельная графика)
+        ctx.fillStyle = armorColor;
+        ctx.fillRect(px + offsetX + 8, py + offsetY + 16, 16, 12); // тело
+        
+        ctx.fillStyle = skinColor;
+        ctx.fillRect(px + offsetX + 12, py + offsetY + 8, 8, 12);  // голова
+        
+        // Глаза
+        ctx.fillStyle = "#000";
+        ctx.fillRect(px + offsetX + 13, py + offsetY + 12, 2, 2);
+        ctx.fillRect(px + offsetX + 17, py + offsetY + 12, 2, 2);
+        
+        // Волосы/шлем
+        ctx.fillStyle = "#3a2a1a";
+        ctx.fillRect(px + offsetX + 11, py + offsetY + 4, 10, 6);
+        
+        // Оружие в зависимости от класса
+        if (classType === "sword") {
+            ctx.fillStyle = "#ccaa66";
+            ctx.fillRect(px + offsetX + 24, py + offsetY + 20, 6, 3);
+            ctx.fillRect(px + offsetX + 28, py + offsetY + 18, 2, 8);
+        } else if (classType === "bow") {
+            ctx.fillStyle = "#aa8866";
+            ctx.fillRect(px + offsetX + 22, py + offsetY + 22, 10, 2);
+            ctx.fillRect(px + offsetX + 26, py + offsetY + 18, 2, 8);
+        } else {
+            ctx.fillStyle = "#aa88ff";
+            ctx.fillRect(px + offsetX + 22, py + offsetY + 20, 8, 4);
+            for (let i = 0; i < 3; i++) {
+                ctx.fillRect(px + offsetX + 24 + i*2, py + offsetY + 14, 1, 6);
+            }
+        }
+        
+        // Ноги
+        ctx.fillStyle = pantsColor;
+        ctx.fillRect(px + offsetX + 10, py + offsetY + 28, 6, 6);
+        ctx.fillRect(px + offsetX + 16, py + offsetY + 28, 6, 6);
+        
+        // Анимация движения (если идет, ноги двигаются)
+        if (isMoving) {
+            ctx.fillStyle = "#aa8866";
+            ctx.fillRect(px + offsetX + 10, py + offsetY + 32, 6, 3);
+            ctx.fillRect(px + offsetX + 16, py + offsetY + 32, 6, 3);
+        }
+    }
+    
+    // Пиксельный монстр
+    function drawPixelMonster(x, y, monster) {
+        const px = x * TILE_SIZE;
+        const py = y * TILE_SIZE;
+        const offsetX = (TILE_SIZE - 32) / 2;
+        const offsetY = (TILE_SIZE - 32) / 2;
+        
+        ctx.fillStyle = monster.color;
+        ctx.fillRect(px + offsetX + 6, py + offsetY + 12, 20, 18);
+        ctx.fillRect(px + offsetX + 10, py + offsetY + 6, 12, 10);
+        
+        ctx.fillStyle = "#000";
+        ctx.fillRect(px + offsetX + 12, py + offsetY + 14, 3, 3);
+        ctx.fillRect(px + offsetX + 17, py + offsetY + 14, 3, 3);
+        
+        ctx.fillStyle = "#cc8866";
+        ctx.fillRect(px + offsetX + 14, py + offsetY + 22, 4, 4);
+        
+        // HP бар
+        let hpPercent = monster.hp / monster.maxHp;
+        ctx.fillStyle = "#331a0a";
+        ctx.fillRect(px + offsetX + 4, py + offsetY - 6, 24, 5);
+        ctx.fillStyle = "#c44";
+        ctx.fillRect(px + offsetX + 4, py + offsetY - 6, 24 * hpPercent, 5);
+        
+        ctx.fillStyle = "#ffaa66";
+        ctx.font = "bold 9px monospace";
+        ctx.fillText(monster.name, px + offsetX + 2, py + offsetY - 8);
+    }
+    
+    // Рисуем тайл (пиксельная графика)
+    function drawTile(x, y, type) {
+        const px = x * TILE_SIZE;
+        const py = y * TILE_SIZE;
+        const colors = tileColors[type];
+        
+        ctx.fillStyle = colors.main;
+        ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+        
+        // Пиксельная текстура
+        ctx.fillStyle = colors.dark;
+        for (let i = 0; i < 4; i++) {
+            ctx.fillRect(px + 8 + i*8, py + 12, 4, 4);
+            ctx.fillRect(px + 4 + i*10, py + 28, 4, 4);
+        }
+        
+        ctx.fillStyle = colors.light;
+        for (let i = 0; i < 3; i++) {
+            ctx.fillRect(px + 16 + i*12, py + 20, 3, 3);
+        }
+        
+        // Контур клетки
+        ctx.strokeStyle = "#2a2a1a";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px, py, TILE_SIZE, TILE_SIZE);
+    }
+    
     // ========== ИГРОК ==========
     let player = {
         id: null, name: "",
@@ -334,28 +459,29 @@
         dmgMin: 25, dmgMax: 35,
         defense: 15,
         gold: 500, diamonds: 0,
-        x: 400, y: 250,
+        x: 10, y: 7,          // координаты в тайлах
+        targetX: 10, targetY: 7,
+        isMoving: false,
         pvpMode: false, pvpKills: 0, pvpSkirmish: 0,
         skillSword: 1, skillBow: 1, skillStaff: 1, skillDefense: 1,
         class: "sword"
     };
-
+    
     let monsters = [];
     let otherPlayers = [];
+    let animationFrame = null;
     let lastClick = 0;
-
+    
     // Типы монстров
     const monsterTypes = [
-        { name: "🐀 КРЫСА", emoji: "🐀", lvl: 1, hp: 50, dmgMin: 8, dmgMax: 15, exp: 15, gold: 20, def: 2, color: "#8a6a4a" },
-        { name: "🐺 ВОЛК", emoji: "🐺", lvl: 3, hp: 120, dmgMin: 15, dmgMax: 25, exp: 35, gold: 45, def: 5, color: "#6a6a5a" },
-        { name: "🧟 ЗОМБИ", emoji: "🧟", lvl: 5, hp: 200, dmgMin: 20, dmgMax: 35, exp: 60, gold: 80, def: 8, color: "#5a6a4a" },
-        { name: "👹 ОРК", emoji: "👹", lvl: 8, hp: 350, dmgMin: 28, dmgMax: 48, exp: 100, gold: 120, def: 12, color: "#6a4a3a" },
-        { name: "🐉 ДРАКОН", emoji: "🐉", lvl: 16, hp: 900, dmgMin: 55, dmgMax: 85, exp: 300, gold: 350, def: 25, color: "#8a4a2a" },
-        { name: "💀 ЛИЧ", emoji: "💀", lvl: 20, hp: 1400, dmgMin: 75, dmgMax: 110, exp: 500, gold: 550, def: 32, color: "#6a4a6a" },
-        { name: "👑 КОРОЛЬ", emoji: "👑", lvl: 25, hp: 2200, dmgMin: 100, dmgMax: 150, exp: 800, gold: 900, def: 45, color: "#aa8a4a" }
+        { name: "КРЫСА", emoji: "🐀", lvl: 1, hp: 50, dmgMin: 8, dmgMax: 15, exp: 15, gold: 20, def: 2, color: "#8a6a4a" },
+        { name: "ВОЛК", emoji: "🐺", lvl: 3, hp: 120, dmgMin: 15, dmgMax: 25, exp: 35, gold: 45, def: 5, color: "#6a6a5a" },
+        { name: "ЗОМБИ", emoji: "🧟", lvl: 5, hp: 200, dmgMin: 20, dmgMax: 35, exp: 60, gold: 80, def: 8, color: "#5a6a4a" },
+        { name: "ОРК", emoji: "👹", lvl: 8, hp: 350, dmgMin: 28, dmgMax: 48, exp: 100, gold: 120, def: 12, color: "#6a4a3a" },
+        { name: "ДРАКОН", emoji: "🐉", lvl: 16, hp: 900, dmgMin: 55, dmgMax: 85, exp: 300, gold: 350, def: 25, color: "#8a4a2a" }
     ];
-
-    // ========== РАСЧЕТЫ ==========
+    
+    // ========== ИГРОВАЯ ЛОГИКА ==========
     function getPlayerDamage() {
         let bonus = 1;
         if (player.class === "sword") bonus = 1 + (player.skillSword - 1) * 0.05;
@@ -365,104 +491,108 @@
         let max = Math.floor(player.dmgMax * bonus);
         return Math.floor(Math.random() * (max - min + 1) + min);
     }
-
+    
     function getPlayerDefense() {
         return Math.floor(player.defense * (1 + (player.skillDefense - 1) * 0.03));
     }
-
-    function getRange() {
-        if (player.class === "sword") return 55;
-        if (player.class === "bow") return 130;
-        return 120;
+    
+    function getAttackRange() {
+        if (player.class === "sword") return 1.2;  // 1 клетка
+        if (player.class === "bow") return 3.5;
+        return 3;
     }
-
-    // ========== БОЙ ==========
-    function attackMonster(monster, clickX, clickY) {
-        let dx = player.x - monster.x;
-        let dy = player.y - monster.y;
-        if (Math.hypot(dx, dy) > getRange()) {
-            addLog(`❌ Слишком далеко от ${monster.name}`);
+    
+    function isWalkable(tx, ty) {
+        if (tx < 0 || tx >= MAP_WIDTH || ty < 0 || ty >= MAP_HEIGHT) return false;
+        let tile = map[ty][tx];
+        return tile !== 2 && tile !== 3; // не дерево и не стена
+    }
+    
+    // Движение к цели
+    function moveToTarget() {
+        if (!player.isMoving) return;
+        
+        let dx = player.targetX - player.x;
+        let dy = player.targetY - player.y;
+        let dist = Math.abs(dx) + Math.abs(dy);
+        
+        if (dist === 0) {
+            player.isMoving = false;
             return;
         }
-
+        
+        let stepX = 0, stepY = 0;
+        if (Math.abs(dx) > 0) stepX = dx > 0 ? 1 : -1;
+        else if (Math.abs(dy) > 0) stepY = dy > 0 ? 1 : -1;
+        
+        let newX = player.x + stepX;
+        let newY = player.y + stepY;
+        
+        if (isWalkable(newX, newY)) {
+            player.x = newX;
+            player.y = newY;
+        } else {
+            player.isMoving = false;
+        }
+    }
+    
+    // Атака монстра
+    function attackMonster(monster) {
+        let dist = Math.abs(player.x - monster.x) + Math.abs(player.y - monster.y);
+        let range = getAttackRange();
+        
+        if (dist > range) {
+            addLog(`❌ Слишком далеко от ${monster.name}`);
+            return false;
+        }
+        
         let dmg = getPlayerDamage();
         let crit = Math.random() < 0.1;
         if (crit) dmg = Math.floor(dmg * 1.8);
         let finalDmg = Math.max(1, dmg - monster.def);
         monster.hp -= finalDmg;
-
-        showDamage(clickX, clickY, finalDmg, crit);
+        
+        showDamage(monster.x * TILE_SIZE + TILE_SIZE/2, monster.y * TILE_SIZE + 20, finalDmg, crit);
         addLog(`⚔️ ${finalDmg} урона ${monster.name}${crit ? ' [КРИТ]' : ''}`);
-
+        
         if (monster.hp <= 0) {
             addLog(`🎉 +${monster.exp} EXP, +${monster.gold}💰`);
             player.exp += monster.exp;
             player.gold += monster.gold;
-
+            
             if (player.class === "sword") player.skillSword = Math.min(100, player.skillSword + 1);
             if (player.class === "bow") player.skillBow = Math.min(100, player.skillBow + 1);
             if (player.class === "staff") player.skillStaff = Math.min(100, player.skillStaff + 1);
             player.skillDefense = Math.min(100, player.skillDefense + 0.5);
-
+            
             levelUp();
             monsters = monsters.filter(m => m !== monster);
             spawnMonster();
             updateUI();
             saveGame();
-            draw();
-            return;
+            return true;
         }
-
+        
         let mDmg = Math.floor(Math.random() * (monster.dmgMax - monster.dmgMin + 1) + monster.dmgMin);
         let finalMDmg = Math.max(1, mDmg - getPlayerDefense());
         player.hp -= finalMDmg;
-        showDamage(monster.x, monster.y - 20, finalMDmg, false, true);
+        showDamage(player.x * TILE_SIZE + TILE_SIZE/2, player.y * TILE_SIZE + 20, finalMDmg, false, true);
         addLog(`😈 ${monster.name} наносит ${finalMDmg} урона`);
-
+        
         if (player.hp <= 0) {
             player.hp = 0;
             addLog(`💀 ВЫ ПОГИБЛИ! -50💰`);
             player.gold = Math.max(0, player.gold - 50);
             player.hp = player.maxHp;
-            player.x = cw / 2;
-            player.y = ch / 2;
+            player.x = 10; player.y = 7;
+            player.targetX = 10; player.targetY = 7;
         }
+        
         updateUI();
         saveGame();
-        draw();
+        return true;
     }
-
-    function attackPlayer(target, clickX, clickY) {
-        if (!player.pvpMode && !target.pvpMode) {
-            addLog(`❌ ${target.name} в мирном режиме`);
-            return;
-        }
-        if (Math.hypot(player.x - target.x, player.y - target.y) > 60) {
-            addLog(`❌ Слишком далеко для PvP`);
-            return;
-        }
-
-        let dmg = getPlayerDamage();
-        target.hp -= dmg;
-        showDamage(clickX, clickY, dmg, false);
-        addLog(`⚔️ PVP: ${dmg} урона ${target.name}`);
-
-        if (target.hp <= 0) {
-            addLog(`💀 ${target.name} повержен! +50💰`);
-            player.gold += 50;
-            player.pvpKills++;
-            if (!target.pvpMode) {
-                player.pvpSkirmish++;
-                addLog(`⚠️ СКВЕРНА +1 (${player.pvpSkirmish})`);
-                updatePvpUI();
-            }
-            otherPlayers = otherPlayers.filter(p => p !== target);
-        }
-        updateUI();
-        saveGame();
-        draw();
-    }
-
+    
     function heal() {
         if (player.gold < 50) {
             addLog(`❌ Нужно 50 золота`);
@@ -477,9 +607,8 @@
         addLog(`💊 Здоровье восстановлено!`);
         updateUI();
         saveGame();
-        draw();
     }
-
+    
     function levelUp() {
         let need = player.level * 100;
         while (player.exp >= need) {
@@ -495,143 +624,31 @@
         }
         updateUI();
     }
-
-    // ========== СПАВН ==========
+    
+    // Спавн
     function spawnMonster() {
-        if (monsters.length >= 10) return;
+        if (monsters.length >= 12) return;
         let avail = monsterTypes.filter(m => m.lvl <= player.level + 5);
         if (!avail.length) avail = monsterTypes;
         let t = avail[Math.floor(Math.random() * avail.length)];
+        
+        let x, y;
+        do {
+            x = Math.floor(Math.random() * (MAP_WIDTH - 2)) + 1;
+            y = Math.floor(Math.random() * (MAP_HEIGHT - 2)) + 1;
+        } while (!isWalkable(x, y) || (Math.abs(x - player.x) + Math.abs(y - player.y) < 2));
+        
         monsters.push({
             ...t,
             id: Date.now() + Math.random(),
             hp: t.hp,
-            x: Math.random() * (cw - 100) + 50,
-            y: Math.random() * (ch - 100) + 50
+            maxHp: t.hp,
+            x: x, y: y
         });
     }
-
-    function spawnPlayers() {
-        if (otherPlayers.length < 5 && Math.random() < 0.2) {
-            otherPlayers.push({
-                name: `Игрок${Math.floor(Math.random() * 999)}`,
-                level: Math.floor(Math.random() * player.level) + 1,
-                hp: 100, maxHp: 100,
-                pvpMode: Math.random() < 0.3,
-                x: Math.random() * (cw - 100) + 50,
-                y: Math.random() * (ch - 100) + 50,
-                color: "#6a8a4a"
-            });
-        }
-        if (otherPlayers.length > 8) otherPlayers = otherPlayers.slice(0, 8);
-    }
-
-    // ========== ОТРИСОВКА ==========
-    function draw() {
-        if (!cw || !ch) return;
-        ctx.clearRect(0, 0, cw, ch);
-        
-        // Трава
-        ctx.fillStyle = "#3a6a2a";
-        ctx.fillRect(0, 0, cw, ch);
-        
-        // Сетка
-        ctx.strokeStyle = "#5a8a4a";
-        ctx.lineWidth = 1;
-        for (let i = 0; i < cw; i += 50) {
-            ctx.beginPath();
-            ctx.moveTo(i, 0);
-            ctx.lineTo(i, ch);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(0, i);
-            ctx.lineTo(cw, i);
-            ctx.stroke();
-        }
-        
-        // Другие игроки
-        otherPlayers.forEach(p => {
-            ctx.fillStyle = p.pvpMode ? "#aa5533" : "#6a8a4a";
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, 22, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = "#fff";
-            ctx.font = "bold 10px monospace";
-            ctx.fillText(p.name, p.x - 20, p.y - 15);
-            ctx.fillStyle = "#ffaa66";
-            ctx.fillText(`Lv.${p.level}`, p.x - 12, p.y - 2);
-            
-            let hpP = p.hp / p.maxHp;
-            ctx.fillStyle = "#331a0a";
-            ctx.fillRect(p.x - 22, p.y - 28, 44, 5);
-            ctx.fillStyle = "#c44";
-            ctx.fillRect(p.x - 22, p.y - 28, 44 * hpP, 5);
-            
-            ctx.fillStyle = p.pvpMode ? "#ff8866" : "#88aa88";
-            ctx.font = "8px monospace";
-            ctx.fillText(p.pvpMode ? "🔴 PVP" : "⚪ МИР", p.x - 15, p.y + 28);
-        });
-        
-        // Монстры
-        monsters.forEach(m => {
-            ctx.fillStyle = m.color;
-            ctx.beginPath();
-            ctx.arc(m.x, m.y, 28, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = "#fff";
-            ctx.font = "bold 18px monospace";
-            ctx.fillText(m.emoji, m.x - 12, m.y - 5);
-            ctx.font = "bold 9px monospace";
-            ctx.fillStyle = "#ffaa66";
-            ctx.fillText(m.name, m.x - 20, m.y - 22);
-            
-            let hpP = m.hp / (m.hpMax || m.hp);
-            ctx.fillStyle = "#331a0a";
-            ctx.fillRect(m.x - 28, m.y - 32, 56, 6);
-            ctx.fillStyle = "#c44";
-            ctx.fillRect(m.x - 28, m.y - 32, 56 * hpP, 6);
-            
-            ctx.fillStyle = "#aaaaff";
-            ctx.font = "8px monospace";
-            ctx.fillText(`Lv.${m.lvl}`, m.x - 12, m.y + 32);
-        });
-        
-        // Игрок
-        ctx.fillStyle = player.pvpMode ? "#cc5533" : "#4a8a4a";
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, 24, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 14px monospace";
-        let emoji = player.class === "sword" ? "⚔️" : (player.class === "bow" ? "🏹" : "🔮");
-        ctx.fillText(emoji, player.x - 9, player.y - 5);
-        ctx.font = "bold 10px monospace";
-        ctx.fillText(player.name, player.x - 20, player.y - 28);
-        
-        let hpP = player.hp / player.maxHp;
-        ctx.fillStyle = "#331a0a";
-        ctx.fillRect(player.x - 26, player.y - 38, 52, 7);
-        ctx.fillStyle = "#44aa44";
-        ctx.fillRect(player.x - 26, player.y - 38, 52 * hpP, 7);
-        
-        if (player.pvpSkirmish > 0) {
-            ctx.fillStyle = "#ff6666";
-            ctx.font = "bold 9px monospace";
-            ctx.fillText(`СКВЕРНА ${player.pvpSkirmish}`, player.x - 30, player.y - 48);
-        }
-        
-        // Радиус атаки
-        let range = getRange();
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, range, 0, Math.PI * 2);
-        ctx.strokeStyle = "#ffdd88";
-        ctx.setLineDash([8, 8]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-    }
-
-    // ========== УПРАВЛЕНИЕ ==========
-    function handleClick(e) {
+    
+    // ========== ОБРАБОТЧИК КЛИКА ==========
+    function handleCanvasClick(e) {
         const rect = canvas.getBoundingClientRect();
         let clientX, clientY;
         if (e.touches) {
@@ -641,42 +658,35 @@
             clientX = e.clientX;
             clientY = e.clientY;
         }
-        let mx = (clientX - rect.left) * (cw / rect.width);
-        let my = (clientY - rect.top) * (ch / rect.height);
+        
+        let scaleX = canvas.width / rect.width;
+        let scaleY = canvas.height / rect.height;
+        let mouseX = (clientX - rect.left) * scaleX;
+        let mouseY = (clientY - rect.top) * scaleY;
+        
+        let tileX = Math.floor(mouseX / TILE_SIZE);
+        let tileY = Math.floor(mouseY / TILE_SIZE);
+        
+        if (tileX < 0 || tileX >= MAP_WIDTH || tileY < 0 || tileY >= MAP_HEIGHT) return;
+        
+        // Проверяем, есть ли монстр на этом тайле
+        let monster = monsters.find(m => m.x === tileX && m.y === tileY);
+        if (monster) {
+            attackMonster(monster);
+            draw();
+            return;
+        }
         
         // Движение
-        let dx = mx - player.x;
-        let dy = my - player.y;
-        let dist = Math.hypot(dx, dy);
-        if (dist > 5) {
-            player.x += (dx / dist) * 6;
-            player.y += (dy / dist) * 6;
+        if (isWalkable(tileX, tileY)) {
+            player.targetX = tileX;
+            player.targetY = tileY;
+            player.isMoving = true;
+        } else {
+            addLog(`❌ Нельзя пройти через ${map[tileY][tileX] === 2 ? "дерево" : "стену"}`);
         }
-        player.x = Math.min(Math.max(player.x, 35), cw - 35);
-        player.y = Math.min(Math.max(player.y, 35), ch - 35);
-        
-        // Атака по клику
-        let now = Date.now();
-        if (now - lastClick < 250) return;
-        lastClick = now;
-        
-        for (let m of monsters) {
-            if (Math.hypot(mx - m.x, my - m.y) < 35) {
-                attackMonster(m, clientX, clientY);
-                draw();
-                return;
-            }
-        }
-        for (let p of otherPlayers) {
-            if (Math.hypot(mx - p.x, my - p.y) < 30) {
-                attackPlayer(p, clientX, clientY);
-                draw();
-                return;
-            }
-        }
-        draw();
     }
-
+    
     function showDamage(x, y, dmg, crit, isMonster = false) {
         let div = document.createElement('div');
         div.className = 'damage-popup';
@@ -688,7 +698,62 @@
         document.querySelector('.game-area').appendChild(div);
         setTimeout(() => div.remove(), 700);
     }
-
+    
+    // ========== ОТРИСОВКА ==========
+    function draw() {
+        canvas.width = MAP_WIDTH * TILE_SIZE;
+        canvas.height = MAP_HEIGHT * TILE_SIZE;
+        
+        // Рисуем карту
+        for (let y = 0; y < MAP_HEIGHT; y++) {
+            for (let x = 0; x < MAP_WIDTH; x++) {
+                drawTile(x, y, map[y][x]);
+            }
+        }
+        
+        // Монстры
+        monsters.forEach(m => {
+            drawPixelMonster(m.x, m.y, m);
+        });
+        
+        // Другие игроки (NPC)
+        otherPlayers.forEach(p => {
+            drawPixelHero(p.x, p.y, false, "sword", p.class || "sword");
+            ctx.fillStyle = "#ffaa66";
+            ctx.font = "bold 8px monospace";
+            ctx.fillText(p.name, p.x * TILE_SIZE + 8, p.y * TILE_SIZE - 4);
+        });
+        
+        // Герой
+        drawPixelHero(player.x, player.y, player.isMoving, player.class, player.class);
+        
+        // Имя героя
+        ctx.fillStyle = "#ffdd99";
+        ctx.font = "bold 10px monospace";
+        ctx.fillText(player.name, player.x * TILE_SIZE + 10, player.y * TILE_SIZE - 8);
+        
+        // HP бар героя
+        let hpPercent = player.hp / player.maxHp;
+        ctx.fillStyle = "#331a0a";
+        ctx.fillRect(player.x * TILE_SIZE + 8, player.y * TILE_SIZE - 12, 32, 5);
+        ctx.fillStyle = "#44aa44";
+        ctx.fillRect(player.x * TILE_SIZE + 8, player.y * TILE_SIZE - 12, 32 * hpPercent, 5);
+        
+        if (player.pvpSkirmish > 0) {
+            ctx.fillStyle = "#ff6666";
+            ctx.font = "bold 7px monospace";
+            ctx.fillText(`СКВЕРНА ${player.pvpSkirmish}`, player.x * TILE_SIZE + 5, player.y * TILE_SIZE - 18);
+        }
+    }
+    
+    // ========== АНИМАЦИЯ ==========
+    function gameLoop() {
+        moveToTarget();
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+    
+    // ========== UI И СОХРАНЕНИЕ ==========
     function addLog(msg) {
         let log = document.getElementById('battleLog');
         let entry = document.createElement('div');
@@ -696,9 +761,9 @@
         entry.innerHTML = msg;
         log.appendChild(entry);
         log.scrollTop = log.scrollHeight;
-        while (log.children.length > 60) log.removeChild(log.firstChild);
+        while (log.children.length > 50) log.removeChild(log.firstChild);
     }
-
+    
     function updateUI() {
         document.getElementById('hpValue').innerHTML = player.hp;
         document.getElementById('maxHpValue').innerHTML = player.maxHp;
@@ -708,31 +773,7 @@
         document.getElementById('goldValue').innerHTML = player.gold;
         document.getElementById('diamondsValue').innerHTML = player.diamonds;
     }
-
-    function updatePvpUI() {
-        let btn = document.getElementById('pvpBtn');
-        btn.style.background = player.pvpMode ? "#aa5533" : "#3a2a1a";
-        btn.innerHTML = player.pvpMode ? "🔴 PVP ВКЛ" : "⚔️ PVP";
-    }
-
-    function changeClass(c) {
-        player.class = c;
-        document.querySelectorAll('.class-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(`class${c.charAt(0).toUpperCase() + c.slice(1)}`).classList.add('active');
-        addLog(`⚔️ Класс сменен на ${c === "sword" ? "МЕЧНИК" : c === "bow" ? "ЛУЧНИК" : "МАГ"}`);
-        draw();
-        saveGame();
-    }
-
-    function togglePvP() {
-        player.pvpMode = !player.pvpMode;
-        updatePvpUI();
-        addLog(player.pvpMode ? "🔴 PVP РЕЖИМ ВКЛЮЧЕН" : "⚪ PVP РЕЖИМ ВЫКЛЮЧЕН");
-        draw();
-        saveGame();
-    }
-
-    // ========== СОХРАНЕНИЕ ==========
+    
     function saveGame() {
         if (!player.id && player.name === "Гость") return;
         let data = {
@@ -748,7 +789,7 @@
                 class: player.class
             },
             monsters: monsters.map(m => ({
-                name: m.name, emoji: m.emoji, lvl: m.lvl, hp: m.hp, hpMax: m.hpMax || m.hp,
+                name: m.name, lvl: m.lvl, hp: m.hp, maxHp: m.maxHp,
                 dmgMin: m.dmgMin, dmgMax: m.dmgMax, exp: m.exp, gold: m.gold, def: m.def,
                 color: m.color, x: m.x, y: m.y
             }))
@@ -756,27 +797,22 @@
         localStorage.setItem(`rucoy_${player.id || player.name}`, JSON.stringify(data));
         let status = document.getElementById('saveStatus');
         status.innerHTML = "💾 Сохранено!";
-        status.style.color = "#aaffaa";
         setTimeout(() => { status.innerHTML = "💾 Сохранено"; }, 2000);
     }
-
+    
     function loadGame(identifier) {
         let saved = localStorage.getItem(`rucoy_${identifier}`);
         if (!saved) return false;
         try {
             let data = JSON.parse(saved);
             Object.assign(player, data.player);
-            monsters = data.monsters.map(m => ({ ...m, hp: m.hp, hpMax: m.hpMax || m.hp }));
-            if (!player.x) player.x = cw / 2;
-            if (!player.y) player.y = ch / 2;
+            monsters = data.monsters.map(m => ({ ...m, hp: m.hp, maxHp: m.maxHp || m.hp }));
             updateUI();
-            updatePvpUI();
-            draw();
             addLog(`💾 Загружен прогресс: ${player.name}, уровень ${player.level}`);
             return true;
         } catch(e) { return false; }
     }
-
+    
     // ========== ВХОД ==========
     function login() {
         let name = document.getElementById('playerNameInput').value.trim();
@@ -785,21 +821,38 @@
         player.id = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
         if (!loadGame(player.id)) {
             addLog(`✨ Добро пожаловать, ${player.name}!`);
-            for (let i = 0; i < 4; i++) spawnMonster();
+            for (let i = 0; i < 5; i++) spawnMonster();
         }
         document.getElementById('loginModal').style.display = 'none';
         startGame();
     }
-
+    
     function guestLogin() {
         player.name = "Гость_" + Math.floor(Math.random() * 9999);
         player.id = "guest_" + Date.now();
         addLog(`👤 Игра как гость: ${player.name}`);
-        for (let i = 0; i < 4; i++) spawnMonster();
+        for (let i = 0; i < 5; i++) spawnMonster();
         document.getElementById('loginModal').style.display = 'none';
         startGame();
     }
-
+    
+    function changeClass(c) {
+        player.class = c;
+        document.querySelectorAll('.class-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`class${c.charAt(0).toUpperCase() + c.slice(1)}`).classList.add('active');
+        addLog(`⚔️ Класс сменен на ${c === "sword" ? "МЕЧНИК" : c === "bow" ? "ЛУЧНИК" : "МАГ"}`);
+        saveGame();
+    }
+    
+    function togglePvP() {
+        player.pvpMode = !player.pvpMode;
+        let btn = document.getElementById('pvpBtn');
+        btn.style.background = player.pvpMode ? "#aa5533" : "#2a2418";
+        btn.innerHTML = player.pvpMode ? "🔴 PVP ВКЛ" : "⚔️ PVP";
+        addLog(player.pvpMode ? "🔴 PVP РЕЖИМ ВКЛЮЧЕН" : "⚪ PVP РЕЖИМ ВЫКЛЮЧЕН");
+        saveGame();
+    }
+    
     function showInventory() {
         let list = document.getElementById('inventoryList');
         list.innerHTML = `
@@ -814,7 +867,7 @@
         `;
         document.getElementById('inventoryModal').style.display = 'flex';
     }
-
+    
     function showSkills() {
         let list = document.getElementById('skillsList');
         list.innerHTML = `
@@ -825,15 +878,16 @@
         `;
         document.getElementById('skillsModal').style.display = 'flex';
     }
-
+    
     function closeModal(id) {
         document.getElementById(id).style.display = 'none';
     }
-
+    
     function startGame() {
-        resize();
-        canvas.addEventListener('click', handleClick);
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleClick(e); });
+        generateMap();
+        
+        canvas.addEventListener('click', handleCanvasClick);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleCanvasClick(e); });
         
         document.getElementById('classSword').onclick = () => changeClass('sword');
         document.getElementById('classBow').onclick = () => changeClass('bow');
@@ -844,16 +898,19 @@
         document.getElementById('healBtn').onclick = heal;
         document.getElementById('saveBtn').onclick = saveGame;
         
-        setInterval(() => { spawnPlayers(); draw(); }, 8000);
-        setInterval(() => { if (monsters.length < 6) spawnMonster(); draw(); }, 5000);
+        setInterval(() => { if (monsters.length < 6) spawnMonster(); draw(); }, 8000);
         setInterval(() => saveGame(), 30000);
         window.addEventListener('beforeunload', () => saveGame());
         
-        draw();
+        gameLoop();
         addLog(`📊 Уровень ${player.level}, опыт ${player.exp}/${player.level*100}`);
     }
-
-    resize();
+    
+    // Запуск
+    generateMap();
+    TILE_SIZE = Math.min(48, Math.floor(window.innerWidth / 22));
+    MAP_WIDTH = 20;
+    MAP_HEIGHT = 15;
 </script>
 </body>
 </html>
