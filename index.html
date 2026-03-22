@@ -2,14 +2,15 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Rucoy Online - Pixel RPG</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Rucoy Online - 2D MMORPG</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
             image-rendering: pixelated;
             image-rendering: crisp-edges;
         }
@@ -17,114 +18,133 @@
         body {
             background: #0a0c15;
             font-family: 'Courier New', 'VT323', monospace;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 16px;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
         }
 
         /* Пиксельный стиль */
         .pixel-border {
-            border: 3px solid #5a4a2e;
-            box-shadow: inset 0 0 0 2px #d4b87a, 0 4px 8px rgba(0,0,0,0.5);
+            border: 2px solid #5a4a2e;
+            box-shadow: inset 0 0 0 1px #d4b87a;
             background: #2a2418;
         }
 
         .game-container {
-            max-width: 550px;
-            width: 100%;
-            background: #1a1a1a;
-            border-radius: 0;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-            image-rendering: pixelated;
-        }
-
-        /* Пиксельный экран битвы */
-        .battle-screen {
-            background: #1e2a1a;
-            padding: 20px;
-            text-align: center;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            background: #1a2a1a;
             position: relative;
-            min-height: 320px;
-            border-bottom: 4px solid #5a4a2e;
         }
 
-        .pixel-art {
-            font-size: 80px;
-            filter: drop-shadow(2px 2px 0 #000);
-            letter-spacing: 8px;
-        }
-
-        .monster-hp-bar {
-            background: #331a0a;
-            height: 12px;
-            width: 200px;
-            margin: 8px auto;
-            border-radius: 0;
-            overflow: hidden;
-            border: 1px solid #d4b87a;
-        }
-
-        .monster-hp-fill {
-            background: #c44;
-            height: 100%;
-            width: 100%;
-            transition: width 0.2s;
-        }
-
-        .player-stats {
-            background: #1e1a12;
-            padding: 12px;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
+        /* Верхняя панель */
+        .top-bar {
+            background: #1a140c;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #5a4a2e;
+            flex-wrap: wrap;
             gap: 8px;
-            border-bottom: 2px solid #5a4a2e;
         }
 
-        .stat-card {
+        .online-info {
             background: #2a2418;
-            padding: 6px;
-            text-align: center;
-            border-left: 3px solid #d4b87a;
-        }
-
-        .stat-label {
-            font-size: 10px;
-            color: #b89a6a;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .stat-value {
-            font-size: 18px;
-            font-weight: bold;
-            color: #f5e6b0;
+            padding: 4px 12px;
+            border-radius: 0;
+            font-size: 11px;
+            color: #6f9e6f;
             font-family: monospace;
         }
 
-        .action-buttons {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            padding: 12px;
+        .player-stats-mini {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: #e6d5a8;
+        }
+
+        .stat-mini {
+            background: #2a2418;
+            padding: 4px 12px;
+        }
+
+        /* Игровое поле (вид сверху) */
+        .game-field {
+            flex: 1;
+            position: relative;
+            background: #2d3a2a;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #3a4a2a;
+            cursor: crosshair;
+        }
+
+        /* Нижняя панель */
+        .bottom-panel {
             background: #1a140c;
+            padding: 10px;
+            border-top: 3px solid #5a4a2e;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .class-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        .class-btn {
+            background: #2a2418;
+            border: 2px solid #5a4a2e;
+            padding: 8px 16px;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.05s linear;
+            color: #d4b87a;
+        }
+
+        .class-btn.active {
+            background: #4a3a22;
+            border-color: #e6b83e;
+            color: #ffdd88;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+        }
+
+        .class-btn:active {
+            transform: translateY(1px);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
         }
 
         .pixel-btn {
             background: #3a2a1a;
             border: none;
-            padding: 12px;
-            font-family: 'Courier New', monospace;
+            padding: 8px 16px;
+            font-family: monospace;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 12px;
             color: #f5e6b0;
             cursor: pointer;
-            transition: all 0.05s linear;
-            text-transform: uppercase;
-            letter-spacing: 1px;
             border-bottom: 3px solid #7a5a3a;
+            text-transform: uppercase;
         }
 
         .pixel-btn:active {
@@ -132,575 +152,783 @@
             border-bottom-width: 1px;
         }
 
-        .log-area {
+        /* Лог боя */
+        .battle-log {
             background: #0a0a0a;
-            padding: 10px;
-            height: 120px;
+            width: 250px;
+            height: 200px;
+            position: absolute;
+            bottom: 80px;
+            right: 10px;
             overflow-y: auto;
-            font-size: 11px;
+            font-size: 10px;
             color: #8faa6a;
-            font-family: monospace;
-            border-top: 2px solid #5a4a2e;
+            padding: 8px;
+            border: 2px solid #5a4a2e;
+            background: rgba(10,10,10,0.9);
+            z-index: 10;
+            pointer-events: none;
         }
 
         .log-entry {
-            padding: 3px 0;
+            padding: 2px 0;
             border-bottom: 1px solid #2a2a1a;
+            font-size: 9px;
+        }
+
+        .damage-number {
+            position: absolute;
+            font-weight: bold;
+            font-size: 16px;
+            font-family: monospace;
+            text-shadow: 1px 1px 0 black;
+            pointer-events: none;
+            z-index: 20;
+            animation: floatUp 0.6s ease-out forwards;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-40px); }
+        }
+
+        .pvp-indicator {
+            background: #8a2a2a;
+            color: #ffaa88;
+            padding: 2px 8px;
             font-size: 10px;
         }
 
-        .damage-crit {
-            color: #ffaa44;
-            text-shadow: 0 0 2px #ff6600;
-        }
-
-        .upgrade-panel {
-            background: #2a2418;
-            padding: 12px;
-            border-top: 2px solid #d4b87a;
-        }
-
-        .upgrade-item {
-            display: flex;
-            justify-content: space-between;
+        /* Модальные окна */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            justify-content: center;
             align-items: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: #2a2418;
+            border: 3px solid #d4b87a;
+            padding: 20px;
+            max-width: 300px;
+            width: 90%;
+            color: #e6d5a8;
+            font-family: monospace;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 16px;
+            color: #ffdd88;
+        }
+
+        .close-btn {
+            background: #3a2a1a;
             padding: 8px;
-            background: #1e1a12;
-            margin-bottom: 6px;
+            text-align: center;
+            margin-top: 16px;
             cursor: pointer;
         }
 
-        .upgrade-name {
-            font-weight: bold;
-            color: #d4b87a;
-        }
-
-        .upgrade-cost {
-            color: #ffaa44;
-            font-family: monospace;
-        }
-
-        .online-badge {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: #2a6a2a;
-            padding: 4px 8px;
-            font-size: 9px;
-            color: #aaffaa;
-            font-family: monospace;
-            border: 1px solid #6a9a6a;
-        }
-
-        .player-name {
-            font-size: 12px;
-            color: #ffcc88;
-            text-align: center;
-            padding: 4px;
-            background: #1a140c;
-        }
-
-        @keyframes hit {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); filter: brightness(1.5); }
-            100% { transform: scale(1); }
-        }
-
-        .hit-effect {
-            animation: hit 0.1s ease;
+        .inventory-item {
+            background: #1e1a12;
+            padding: 6px;
+            margin: 4px 0;
+            display: flex;
+            justify-content: space-between;
         }
     </style>
 </head>
 <body>
 <div class="game-container">
-    <!-- Онлайн статус -->
-    <div class="player-name" id="playerName">
-        ⚔️ ЗАГРУЗКА... ⚔️
+    <!-- Верхняя панель -->
+    <div class="top-bar">
+        <div class="online-info" id="onlineInfo">🟢 ONLINE: 1,234</div>
+        <div class="player-stats-mini">
+            <div class="stat-mini">❤️ <span id="hpStat">100/100</span></div>
+            <div class="stat-mini">⚔️ <span id="dmgStat">25-35</span></div>
+            <div class="stat-mini">🛡️ <span id="defStat">15</span></div>
+            <div class="stat-mini">✨ Lv.<span id="levelStat">1</span></div>
+            <div class="stat-mini">💰 <span id="goldStat">500</span></div>
+            <div class="stat-mini">💎 <span id="diamondsStat">0</span></div>
+        </div>
+        <div class="pvp-indicator" id="pvpIndicator">⚪ МИРНЫЙ</div>
     </div>
 
-    <!-- Экран битвы -->
-    <div class="battle-screen" id="battleScreen">
-        <div class="online-badge" id="onlineStatus">🟢 ONLINE</div>
-        <div class="pixel-art" id="monsterEmoji">🐉</div>
-        <div id="monsterName" style="color:#ffaa66; font-weight:bold; margin-top:8px;">ДРАКОН</div>
-        <div class="monster-hp-bar">
-            <div class="monster-hp-fill" id="monsterHpFill" style="width: 100%"></div>
-        </div>
-        <div id="monsterHpText" style="color:#ccaa77; font-size:12px;">HP: 1000 / 1000</div>
-        <div id="monsterLevel" style="color:#88aa66; font-size:10px;">УРОВЕНЬ 10</div>
-    </div>
-
-    <!-- Статы игрока -->
-    <div class="player-stats">
-        <div class="stat-card">
-            <div class="stat-label">❤️ HP</div>
-            <div class="stat-value" id="playerHp">100/100</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">⚔️ DMG</div>
-            <div class="stat-value" id="playerDmg">25-35</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">🛡️ DEF</div>
-            <div class="stat-value" id="playerDef">15</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">✨ LVL</div>
-            <div class="stat-value" id="playerLevel">1</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">💰 ЗОЛОТО</div>
-            <div class="stat-value" id="playerGold">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">⭐ EXP</div>
-            <div class="stat-value" id="playerExp">0/100</div>
+    <!-- Игровое поле (вид сверху) -->
+    <div class="game-field">
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        <div class="battle-log" id="battleLog">
+            <div class="log-entry">✨ Добро пожаловать в Rucoy Online!</div>
+            <div class="log-entry">⚔️ Кликай по врагам, чтобы атаковать</div>
+            <div class="log-entry">🏃 Двигай мышкой/пальцем для уклонения</div>
         </div>
     </div>
 
-    <!-- Кнопки действий -->
-    <div class="action-buttons">
-        <button class="pixel-btn" id="attackBtn">⚔️ АТАКА</button>
-        <button class="pixel-btn" id="healBtn">💊 ЛЕЧЕНИЕ (50💰)</button>
-        <button class="pixel-btn" id="nextMonsterBtn">👹 СЛЕДУЮЩИЙ</button>
-    </div>
-
-    <!-- Улучшения -->
-    <div class="upgrade-panel">
-        <div style="color:#d4b87a; margin-bottom:8px; font-size:12px;">🏆 УЛУЧШЕНИЯ</div>
-        <div class="upgrade-item" id="upgradeDmg">
-            <span class="upgrade-name">⚔️ СИЛА +5</span>
-            <span class="upgrade-cost" id="dmgCost">100💰</span>
+    <!-- Нижняя панель -->
+    <div class="bottom-panel">
+        <div class="class-buttons">
+            <button class="class-btn" id="classSword">⚔️ МЕЧНИК</button>
+            <button class="class-btn" id="classBow">🏹 ЛУЧНИК</button>
+            <button class="class-btn" id="classStaff">🔮 МАГ</button>
         </div>
-        <div class="upgrade-item" id="upgradeDef">
-            <span class="upgrade-name">🛡️ ЗАЩИТА +3</span>
-            <span class="upgrade-cost" id="defCost">80💰</span>
-        </div>
-        <div class="upgrade-item" id="upgradeHp">
-            <span class="upgrade-name">❤️ МАКС. HP +20</span>
-            <span class="upgrade-cost" id="hpCost">150💰</span>
+        <div class="action-buttons">
+            <button class="pixel-btn" id="pvpToggleBtn">⚔️ PVP РЕЖИМ</button>
+            <button class="pixel-btn" id="inventoryBtn">📦 ИНВЕНТАРЬ</button>
+            <button class="pixel-btn" id="skillsBtn">📊 НАВЫКИ</button>
+            <button class="pixel-btn" id="healBtn">💊 ЛЕЧЕНИЕ (50💰)</button>
         </div>
     </div>
+</div>
 
-    <!-- Лог боя -->
-    <div class="log-area" id="logArea">
-        <div class="log-entry">✨ Добро пожаловать в Rucoy Online!</div>
-        <div class="log-entry">⚔️ Сражайся с монстрами и становись сильнее!</div>
+<!-- Модальные окна -->
+<div id="inventoryModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-title">📦 ИНВЕНТАРЬ</div>
+        <div id="inventoryList"></div>
+        <div class="close-btn" onclick="closeModal('inventoryModal')">ЗАКРЫТЬ</div>
+    </div>
+</div>
+
+<div id="skillsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-title">📊 НАВЫКИ</div>
+        <div id="skillsList"></div>
+        <div class="close-btn" onclick="closeModal('skillsModal')">ЗАКРЫТЬ</div>
     </div>
 </div>
 
 <script>
-    // ========== ИГРОВЫЕ ДАННЫЕ ==========
+    // ========== НАСТРОЙКИ ==========
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Размеры игрового поля
+    let canvasWidth = 800;
+    let canvasHeight = 500;
+    
+    function resizeCanvas() {
+        const container = document.querySelector('.game-field');
+        canvasWidth = container.clientWidth;
+        canvasHeight = container.clientHeight;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        drawGame();
+    }
+    
+    window.addEventListener('resize', resizeCanvas);
+    
+    // ========== ИГРОК ==========
     let player = {
         name: "ГЕРОЙ",
         level: 1,
         exp: 0,
         maxHp: 100,
         hp: 100,
-        minDmg: 25,
-        maxDmg: 35,
+        baseDmg: { min: 25, max: 35 },
         defense: 15,
         gold: 500,
-        upgradeDmg: 0,
-        upgradeDef: 0,
-        upgradeHp: 0
+        diamonds: 0,
+        x: 400,
+        y: 250,
+        radius: 20,
+        pvpMode: false,
+        pvpKills: 0,
+        pvpSkirmish: 0,
+        
+        // Навыки (скиллы)
+        skillSword: 1,
+        skillBow: 1,
+        skillStaff: 1,
+        skillDefense: 1,
+        
+        // Текущий класс
+        currentClass: "sword", // sword, bow, staff
+        classEmoji: { sword: "⚔️", bow: "🏹", staff: "🔮" },
+        
+        // Экипировка
+        weapon: null,
+        armor: null
     };
-
-    let currentMonster = null;
-    let monsterList = [];
-    let attackInterval = null;
-    let isAttacking = false;
-
-    // ========== МОНСТРЫ (Пиксельные боссы) ==========
-    const monsters = [
-        { name: "🐀 КРЫСА", emoji: "🐀", level: 1, hp: 50, minDmg: 8, maxDmg: 15, exp: 15, gold: 20, defense: 2 },
-        { name: "🐺 ВОЛК", emoji: "🐺", level: 3, hp: 120, minDmg: 15, maxDmg: 25, exp: 35, gold: 45, defense: 5 },
-        { name: "🧟 ЗОМБИ", emoji: "🧟", level: 5, hp: 200, minDmg: 20, maxDmg: 35, exp: 60, gold: 80, defense: 8 },
-        { name: "⚔️ ОРК", emoji: "👹", level: 8, hp: 350, minDmg: 28, maxDmg: 48, exp: 100, gold: 120, defense: 12 },
-        { name: "🔥 ОГР", emoji: "🔥", level: 12, hp: 550, minDmg: 40, maxDmg: 65, exp: 180, gold: 200, defense: 18 },
-        { name: "🐉 ДРАКОН", emoji: "🐉", level: 16, hp: 900, minDmg: 55, maxDmg: 85, exp: 300, gold: 350, defense: 25 },
-        { name: "💀 ЛИЧ", emoji: "💀", level: 20, hp: 1400, minDmg: 75, maxDmg: 110, exp: 500, gold: 550, defense: 32 },
-        { name: "👑 КОРОЛЬ ДЕМОНОВ", emoji: "👑", level: 25, hp: 2200, minDmg: 100, maxDmg: 150, exp: 800, gold: 900, defense: 45 },
-        { name: "🌋 ПОВЕЛИТЕЛЬ ОГНЯ", emoji: "🌋", level: 30, hp: 3500, minDmg: 130, maxDmg: 190, exp: 1200, gold: 1500, defense: 60 },
-        { name: "⭐ ДРЕВНИЙ БОСС", emoji: "⭐", level: 40, hp: 6000, minDmg: 180, maxDmg: 250, exp: 2000, gold: 2500, defense: 85 }
+    
+    // ========== МОНСТРЫ ==========
+    let monsters = [];
+    let monsterId = 0;
+    
+    const monsterTypes = [
+        { name: "🐀 КРЫСА", emoji: "🐀", level: 1, hp: 50, minDmg: 8, maxDmg: 15, exp: 15, gold: 20, defense: 2, color: "#8a6a4a" },
+        { name: "🐺 ВОЛК", emoji: "🐺", level: 3, hp: 120, minDmg: 15, maxDmg: 25, exp: 35, gold: 45, defense: 5, color: "#6a6a5a" },
+        { name: "🧟 ЗОМБИ", emoji: "🧟", level: 5, hp: 200, minDmg: 20, maxDmg: 35, exp: 60, gold: 80, defense: 8, color: "#5a6a4a" },
+        { name: "👹 ОРК", emoji: "👹", level: 8, hp: 350, minDmg: 28, maxDmg: 48, exp: 100, gold: 120, defense: 12, color: "#6a4a3a" },
+        { name: "🐉 ДРАКОН", emoji: "🐉", level: 16, hp: 900, minDmg: 55, maxDmg: 85, exp: 300, gold: 350, defense: 25, color: "#8a4a2a" }
     ];
-
-    // ========== ОНЛАЙН ФУНКЦИИ ==========
-    let onlinePlayers = [];
-    let playerId = "player_" + Math.random().toString(36).substr(2, 8);
-    let ws = null;
-
-    function initWebSocket() {
-        // Эмуляция онлайн режима (без реального сервера, используем localStorage для симуляции)
-        try {
-            // Получаем список онлайн игроков из localStorage
-            let players = localStorage.getItem('rucoy_online_players');
-            if (players) {
-                onlinePlayers = JSON.parse(players);
-            } else {
-                onlinePlayers = [];
-            }
-            
-            // Добавляем текущего игрока
-            const existing = onlinePlayers.find(p => p.id === playerId);
-            if (!existing) {
-                onlinePlayers.push({
-                    id: playerId,
-                    name: player.name,
-                    level: player.level,
-                    lastSeen: Date.now()
-                });
-            } else {
-                existing.lastSeen = Date.now();
-                existing.level = player.level;
-            }
-            
-            // Очищаем старых игроков (неактивных > 2 минут)
-            onlinePlayers = onlinePlayers.filter(p => Date.now() - p.lastSeen < 120000);
-            localStorage.setItem('rucoy_online_players', JSON.stringify(onlinePlayers));
-            
-            updateOnlineStatus();
-            
-            // Обновляем онлайн статус каждые 5 секунд
-            setInterval(() => {
-                const pIndex = onlinePlayers.findIndex(p => p.id === playerId);
-                if (pIndex !== -1) {
-                    onlinePlayers[pIndex].lastSeen = Date.now();
-                    onlinePlayers[pIndex].level = player.level;
-                    onlinePlayers[pIndex].name = player.name;
-                }
-                onlinePlayers = onlinePlayers.filter(p => Date.now() - p.lastSeen < 120000);
-                localStorage.setItem('rucoy_online_players', JSON.stringify(onlinePlayers));
-                updateOnlineStatus();
-            }, 5000);
-            
-        } catch(e) {
-            console.log("Офлайн режим");
-            document.getElementById('onlineStatus').innerHTML = "⚫ OFFLINE";
-        }
-    }
-
-    function updateOnlineStatus() {
-        const count = onlinePlayers.length;
-        const statusEl = document.getElementById('onlineStatus');
-        if (statusEl) {
-            statusEl.innerHTML = `🟢 ONLINE ${count}`;
-        }
-    }
-
-    // ========== ИГРОВАЯ ЛОГИКА ==========
+    
+    // ========== ИГРОКИ ДЛЯ PVP ==========
+    let otherPlayers = [];
+    
+    // ========== ФУНКЦИИ ==========
     function getRandomDamage(min, max) {
         return Math.floor(Math.random() * (max - min + 1) + min);
     }
-
-    function calculatePlayerDamage() {
-        let baseMin = player.minDmg + (player.upgradeDmg * 5);
-        let baseMax = player.maxDmg + (player.upgradeDmg * 5);
-        return getRandomDamage(baseMin, baseMax);
+    
+    function getPlayerDamage() {
+        let baseMin = player.baseDmg.min;
+        let baseMax = player.baseDmg.max;
+        
+        // Бонус от навыка
+        let skillBonus = 1;
+        if (player.currentClass === "sword") skillBonus = 1 + (player.skillSword - 1) * 0.05;
+        if (player.currentClass === "bow") skillBonus = 1 + (player.skillBow - 1) * 0.05;
+        if (player.currentClass === "staff") skillBonus = 1 + (player.skillStaff - 1) * 0.05;
+        
+        let min = Math.floor(baseMin * skillBonus);
+        let max = Math.floor(baseMax * skillBonus);
+        
+        return getRandomDamage(min, max);
     }
-
-    function calculateMonsterDamage(monster) {
-        let damage = getRandomDamage(monster.minDmg, monster.maxDmg);
-        let reduced = Math.max(1, damage - player.defense - (player.upgradeDef * 2));
-        return reduced;
+    
+    function getPlayerDefense() {
+        let defBonus = 1 + (player.skillDefense - 1) * 0.03;
+        return Math.floor(player.defense * defBonus);
     }
-
-    function addLog(message, isDamage = false, isCrit = false) {
-        const logArea = document.getElementById('logArea');
-        const entry = document.createElement('div');
-        entry.className = 'log-entry';
-        if (isCrit) entry.classList.add('damage-crit');
-        entry.innerHTML = isCrit ? `💥 КРИТ! ${message}` : message;
-        logArea.appendChild(entry);
-        logArea.scrollTop = logArea.scrollHeight;
-        while (logArea.children.length > 50) {
-            logArea.removeChild(logArea.firstChild);
-        }
-    }
-
-    function attack() {
-        if (!currentMonster || currentMonster.hp <= 0) return;
+    
+    function attackMonster(monster, mouseX, mouseY) {
+        // Проверка расстояния
+        let dx = player.x - monster.x;
+        let dy = player.y - monster.y;
+        let distance = Math.sqrt(dx * dx + dy * dy);
         
-        // Анимация удара
-        const battleScreen = document.getElementById('battleScreen');
-        battleScreen.classList.add('hit-effect');
-        setTimeout(() => battleScreen.classList.remove('hit-effect'), 100);
+        let attackRange = 50;
+        if (player.currentClass === "bow") attackRange = 120;
+        if (player.currentClass === "staff") attackRange = 110;
         
-        // Урон игрока
-        let damage = calculatePlayerDamage();
-        let isCrit = Math.random() < 0.1;
-        if (isCrit) damage = Math.floor(damage * 1.8);
-        
-        let finalDamage = Math.max(1, damage - currentMonster.defense);
-        currentMonster.hp -= finalDamage;
-        
-        addLog(`⚔️ Вы нанесли ${finalDamage} урона ${currentMonster.name}${isCrit ? ' [КРИТ]' : ''}`, true, isCrit);
-        
-        updateMonsterUI();
-        
-        // Проверка на смерть монстра
-        if (currentMonster.hp <= 0) {
-            currentMonster.hp = 0;
-            addLog(`🎉 Вы победили ${currentMonster.name}! +${currentMonster.exp} EXP, +${currentMonster.gold}💰`);
-            
-            // Награда
-            player.exp += currentMonster.exp;
-            player.gold += currentMonster.gold;
-            
-            // Проверка уровня
-            checkLevelUp();
-            
-            updatePlayerUI();
-            
-            // Автоматически спавним следующего монстра
-            spawnRandomMonster();
+        if (distance > attackRange) {
+            addLog(`❌ Слишком далеко! Подойдите ближе к ${monster.name}`);
             return;
         }
         
+        // Урон игрока
+        let damage = getPlayerDamage();
+        let isCrit = Math.random() < 0.1;
+        if (isCrit) damage = Math.floor(damage * 1.8);
+        
+        let finalDamage = Math.max(1, damage - monster.defense);
+        monster.hp -= finalDamage;
+        
+        // Показываем урон
+        showDamageNumber(mouseX, mouseY, finalDamage, isCrit);
+        addLog(`⚔️ Вы нанесли ${finalDamage} урона ${monster.name}${isCrit ? ' [КРИТ]' : ''}`);
+        
+        // Проверка на смерть
+        if (monster.hp <= 0) {
+            addLog(`🎉 Победа над ${monster.name}! +${monster.exp} EXP, +${monster.gold}💰`);
+            player.exp += monster.exp;
+            player.gold += monster.gold;
+            
+            // Прокачка навыка
+            if (player.currentClass === "sword") player.skillSword = Math.min(100, player.skillSword + 1);
+            if (player.currentClass === "bow") player.skillBow = Math.min(100, player.skillBow + 1);
+            if (player.currentClass === "staff") player.skillStaff = Math.min(100, player.skillStaff + 1);
+            player.skillDefense = Math.min(100, player.skillDefense + 0.5);
+            
+            checkLevelUp();
+            
+            // Удаляем монстра
+            const index = monsters.indexOf(monster);
+            if (index > -1) monsters.splice(index, 1);
+            
+            // Спавн нового
+            spawnMonster();
+            updateUI();
+            return true;
+        }
+        
         // Контратака монстра
-        let monsterDamage = calculateMonsterDamage(currentMonster);
-        player.hp -= monsterDamage;
-        addLog(`😈 ${currentMonster.name} наносит ${monsterDamage} урона!`);
+        let monsterDamage = getRandomDamage(monster.minDmg, monster.maxDmg);
+        let playerDef = getPlayerDefense();
+        let reducedDamage = Math.max(1, monsterDamage - playerDef);
+        player.hp -= reducedDamage;
+        
+        showDamageNumber(monster.x, monster.y - 20, reducedDamage, false, true);
+        addLog(`😈 ${monster.name} наносит ${reducedDamage} урона!`);
         
         if (player.hp <= 0) {
             player.hp = 0;
             addLog(`💀 ВЫ ПОГИБЛИ! Возрождение... -50💰`);
             player.gold = Math.max(0, player.gold - 50);
             player.hp = player.maxHp;
-            updatePlayerUI();
-            spawnRandomMonster();
+            // Возрождение в центре
+            player.x = canvasWidth / 2;
+            player.y = canvasHeight / 2;
         }
         
-        updatePlayerUI();
-        updateMonsterUI();
+        updateUI();
+        return true;
     }
-
+    
+    function showDamageNumber(x, y, damage, isCrit, isMonsterAttack = false) {
+        const damageDiv = document.createElement('div');
+        damageDiv.className = 'damage-number';
+        damageDiv.textContent = `-${damage}`;
+        if (isCrit) damageDiv.style.color = '#ffaa44';
+        if (isMonsterAttack) damageDiv.style.color = '#ff8866';
+        damageDiv.style.left = (x - 15) + 'px';
+        damageDiv.style.top = (y - 20) + 'px';
+        damageDiv.style.position = 'absolute';
+        damageDiv.style.pointerEvents = 'none';
+        document.querySelector('.game-field').appendChild(damageDiv);
+        setTimeout(() => damageDiv.remove(), 600);
+    }
+    
+    function attackPlayer(targetPlayer, mouseX, mouseY) {
+        if (!player.pvpMode && !targetPlayer.pvpMode) {
+            addLog(`❌ ${targetPlayer.name} в мирном режиме!`);
+            return;
+        }
+        
+        let dx = player.x - targetPlayer.x;
+        let dy = player.y - targetPlayer.y;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance > 50) {
+            addLog(`❌ Слишком далеко для PvP!`);
+            return;
+        }
+        
+        let damage = getPlayerDamage();
+        targetPlayer.hp -= damage;
+        
+        showDamageNumber(mouseX, mouseY, damage, false);
+        addLog(`⚔️ PVP: Вы нанесли ${damage} урона ${targetPlayer.name}`);
+        
+        if (targetPlayer.hp <= 0) {
+            addLog(`💀 ${targetPlayer.name} повержен! +50💰 +1 убийство`);
+            player.gold += 50;
+            player.pvpKills++;
+            
+            if (!targetPlayer.pvpMode) {
+                player.pvpSkirmish++;
+                addLog(`⚠️ СКВЕРНА +1! Ваше имя окрашено в красный!`);
+                updatePvpIndicator();
+            }
+            
+            // Удаляем игрока
+            const index = otherPlayers.indexOf(targetPlayer);
+            if (index > -1) otherPlayers.splice(index, 1);
+        }
+        
+        updateUI();
+    }
+    
     function heal() {
         if (player.gold < 50) {
-            addLog(`❌ Недостаточно золота для лечения! Нужно 50💰`);
+            addLog(`❌ Недостаточно золота! Нужно 50💰`);
             return;
         }
-        
         if (player.hp >= player.maxHp) {
-            addLog(`❤️ У вас уже полное здоровье!`);
+            addLog(`❤️ У вас полное здоровье!`);
             return;
         }
-        
         player.gold -= 50;
         player.hp = player.maxHp;
-        addLog(`💊 Вы использовали зелье! Здоровье восстановлено до ${player.hp}/${player.maxHp}`);
-        updatePlayerUI();
+        addLog(`💊 Вы использовали зелье! Здоровье восстановлено`);
+        updateUI();
     }
-
-    function spawnRandomMonster() {
-        // Выбираем монстра под уровень игрока
-        let available = monsters.filter(m => m.level <= player.level + 5);
-        if (available.length === 0) available = monsters;
-        
-        let monsterData = available[Math.floor(Math.random() * available.length)];
-        
-        currentMonster = {
-            ...monsterData,
-            hp: monsterData.hp
-        };
-        
-        updateMonsterUI();
-        addLog(`👹 Появился ${currentMonster.name} (Ур.${currentMonster.level})!`);
-    }
-
-    function spawnBoss() {
-        // Босс - монстр на 5 уровней выше
-        let bossLevel = Math.min(monsters.length - 1, player.level + 5);
-        let bossData = monsters[bossLevel];
-        
-        currentMonster = {
-            ...bossData,
-            hp: bossData.hp * 2,
-            name: `👑 БОСС ${bossData.name}`,
-            exp: bossData.exp * 3,
-            gold: bossData.gold * 3
-        };
-        
-        updateMonsterUI();
-        addLog(`🔥🔥🔥 ПОЯВИЛСЯ БОСС ${currentMonster.name} 🔥🔥🔥`);
-    }
-
-    function nextMonster() {
-        if (Math.random() < 0.2 && player.level >= 5) {
-            spawnBoss();
-        } else {
-            spawnRandomMonster();
-        }
-    }
-
+    
     function checkLevelUp() {
         let expNeeded = player.level * 100;
         while (player.exp >= expNeeded) {
             player.exp -= expNeeded;
             player.level++;
-            
-            // Повышение статов
             player.maxHp += 20;
             player.hp = player.maxHp;
-            player.minDmg += 5;
-            player.maxDmg += 5;
+            player.baseDmg.min += 5;
+            player.baseDmg.max += 5;
             player.defense += 3;
-            
             addLog(`✨✨✨ УРОВЕНЬ ПОВЫШЕН! Теперь вы ${player.level} уровень! ✨✨✨`);
-            addLog(`❤️ HP +20 | ⚔️ Урон +5 | 🛡️ Защита +3`);
-            
             expNeeded = player.level * 100;
-            
-            // Обновляем онлайн статус
-            updateOnlineStatus();
         }
-        updatePlayerUI();
+        updateUI();
     }
-
-    function upgradeDamage() {
-        let cost = 100 + (player.upgradeDmg * 50);
-        if (player.gold < cost) {
-            addLog(`❌ Недостаточно золота! Нужно ${cost}💰`);
-            return;
-        }
-        player.gold -= cost;
-        player.upgradeDmg++;
-        addLog(`⚔️ Сила улучшена! +5 урона (Ур.${player.upgradeDmg})`);
-        updatePlayerUI();
-        updateUpgradeCosts();
-    }
-
-    function upgradeDefense() {
-        let cost = 80 + (player.upgradeDef * 40);
-        if (player.gold < cost) {
-            addLog(`❌ Недостаточно золота! Нужно ${cost}💰`);
-            return;
-        }
-        player.gold -= cost;
-        player.upgradeDef++;
-        addLog(`🛡️ Защита улучшена! +2 защиты (Ур.${player.upgradeDef})`);
-        updatePlayerUI();
-        updateUpgradeCosts();
-    }
-
-    function upgradeMaxHp() {
-        let cost = 150 + (player.upgradeHp * 75);
-        if (player.gold < cost) {
-            addLog(`❌ Недостаточно золота! Нужно ${cost}💰`);
-            return;
-        }
-        player.gold -= cost;
-        player.upgradeHp++;
-        player.maxHp += 20;
-        player.hp += 20;
-        addLog(`❤️ Максимальное HP увеличено! +20 (Ур.${player.upgradeHp})`);
-        updatePlayerUI();
-        updateUpgradeCosts();
-    }
-
-    function updatePlayerUI() {
-        document.getElementById('playerHp').innerHTML = `${player.hp}/${player.maxHp}`;
-        let totalMin = player.minDmg + (player.upgradeDmg * 5);
-        let totalMax = player.maxDmg + (player.upgradeDmg * 5);
-        document.getElementById('playerDmg').innerHTML = `${totalMin}-${totalMax}`;
-        document.getElementById('playerDef').innerHTML = player.defense + (player.upgradeDef * 2);
-        document.getElementById('playerLevel').innerHTML = player.level;
-        document.getElementById('playerGold').innerHTML = formatNumber(player.gold);
-        let expNeeded = player.level * 100;
-        document.getElementById('playerExp').innerHTML = `${player.exp}/${expNeeded}`;
-        document.getElementById('playerName').innerHTML = `⚔️ ${player.name} | УР.${player.level} ⚔️`;
-    }
-
-    function updateMonsterUI() {
-        if (!currentMonster) return;
-        document.getElementById('monsterEmoji').innerHTML = currentMonster.emoji;
-        document.getElementById('monsterName').innerHTML = currentMonster.name;
-        document.getElementById('monsterLevel').innerHTML = `УРОВЕНЬ ${currentMonster.level}`;
-        let hpPercent = (currentMonster.hp / currentMonster.hpMax) * 100;
-        document.getElementById('monsterHpFill').style.width = `${Math.max(0, hpPercent)}%`;
-        document.getElementById('monsterHpText').innerHTML = `HP: ${Math.max(0, currentMonster.hp)} / ${currentMonster.hpMax}`;
-    }
-
-    function updateUpgradeCosts() {
-        document.getElementById('dmgCost').innerHTML = `${100 + (player.upgradeDmg * 50)}💰`;
-        document.getElementById('defCost').innerHTML = `${80 + (player.upgradeDef * 40)}💰`;
-        document.getElementById('hpCost').innerHTML = `${150 + (player.upgradeHp * 75)}💰`;
-    }
-
-    function formatNumber(num) {
-        if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M';
-        if (num >= 1_000) return (num / 1_000).toFixed(1) + 'K';
-        return num.toString();
-    }
-
-    function saveGame() {
-        const saveData = {
-            player: {
-                name: player.name,
-                level: player.level,
-                exp: player.exp,
-                maxHp: player.maxHp,
-                hp: player.hp,
-                minDmg: player.minDmg,
-                maxDmg: player.maxDmg,
-                defense: player.defense,
-                gold: player.gold,
-                upgradeDmg: player.upgradeDmg,
-                upgradeDef: player.upgradeDef,
-                upgradeHp: player.upgradeHp
-            }
+    
+    function spawnMonster() {
+        if (monsters.length >= 8) return;
+        
+        let levelRange = Math.max(1, player.level - 3);
+        let available = monsterTypes.filter(m => m.level <= player.level + 5);
+        if (available.length === 0) available = monsterTypes;
+        
+        let type = available[Math.floor(Math.random() * available.length)];
+        
+        let monster = {
+            id: monsterId++,
+            name: type.name,
+            emoji: type.emoji,
+            level: type.level,
+            hp: type.hp,
+            maxHp: type.hp,
+            minDmg: type.minDmg,
+            maxDmg: type.maxDmg,
+            exp: type.exp,
+            gold: type.gold,
+            defense: type.defense,
+            color: type.color,
+            x: Math.random() * (canvasWidth - 60) + 30,
+            y: Math.random() * (canvasHeight - 60) + 30,
+            radius: 25
         };
-        localStorage.setItem('rucoy_save_' + playerId, JSON.stringify(saveData));
+        
+        monsters.push(monster);
     }
-
-    function loadGame() {
-        const saved = localStorage.getItem('rucoy_save_' + playerId);
-        if (saved) {
-            try {
-                const data = JSON.parse(saved);
-                Object.assign(player, data.player);
-                addLog("💾 Прогресс загружен!");
-            } catch(e) {}
+    
+    function spawnPlayer() {
+        let newPlayer = {
+            id: "player_" + Math.random(),
+            name: "Игрок_" + Math.floor(Math.random() * 1000),
+            level: Math.floor(Math.random() * player.level) + 1,
+            hp: 100,
+            maxHp: 100,
+            pvpMode: Math.random() < 0.3,
+            x: Math.random() * (canvasWidth - 60) + 30,
+            y: Math.random() * (canvasHeight - 60) + 30,
+            radius: 20,
+            color: "#6a8a4a"
+        };
+        otherPlayers.push(newPlayer);
+    }
+    
+    // ========== РИСОВАНИЕ ==========
+    function drawGame() {
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        
+        // Сетка (трава)
+        ctx.fillStyle = "#3a5a2a";
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        
+        for (let i = 0; i < canvasWidth; i += 40) {
+            ctx.beginPath();
+            ctx.strokeStyle = "#5a7a4a";
+            ctx.lineWidth = 1;
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, canvasHeight);
+            ctx.stroke();
+            ctx.moveTo(0, i);
+            ctx.lineTo(canvasWidth, i);
+            ctx.stroke();
         }
-        updatePlayerUI();
-        updateUpgradeCosts();
+        
+        // Другие игроки
+        otherPlayers.forEach(p => {
+            ctx.fillStyle = p.pvpMode ? "#aa4444" : p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 12px monospace";
+            ctx.shadowBlur = 0;
+            ctx.fillText(p.name, p.x - 25, p.y - 15);
+            ctx.fillStyle = "#ffaa66";
+            ctx.fillText(`Lv.${p.level}`, p.x - 15, p.y - 2);
+            
+            // HP Bar
+            let hpPercent = p.hp / p.maxHp;
+            ctx.fillStyle = "#331a0a";
+            ctx.fillRect(p.x - 25, p.y - 25, 50, 6);
+            ctx.fillStyle = "#c44";
+            ctx.fillRect(p.x - 25, p.y - 25, 50 * hpPercent, 6);
+            
+            ctx.fillStyle = p.pvpMode ? "#ff8888" : "#88aa88";
+            ctx.font = "10px monospace";
+            ctx.fillText(p.pvpMode ? "🔴 PVP" : "⚪ МИР", p.x - 15, p.y + 25);
+        });
+        
+        // Монстры
+        monsters.forEach(m => {
+            ctx.fillStyle = m.color;
+            ctx.beginPath();
+            ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 14px monospace";
+            ctx.fillText(m.emoji, m.x - 10, m.y - 5);
+            ctx.font = "10px monospace";
+            ctx.fillStyle = "#ffaa66";
+            ctx.fillText(m.name, m.x - 20, m.y - 18);
+            
+            // HP Bar
+            let hpPercent = m.hp / m.maxHp;
+            ctx.fillStyle = "#331a0a";
+            ctx.fillRect(m.x - 30, m.y - 30, 60, 6);
+            ctx.fillStyle = "#c44";
+            ctx.fillRect(m.x - 30, m.y - 30, 60 * hpPercent, 6);
+            
+            ctx.fillStyle = "#aaaa77";
+            ctx.font = "9px monospace";
+            ctx.fillText(`Lv.${m.level}`, m.x - 10, m.y + 25);
+        });
+        
+        // Игрок
+        let playerColor = player.pvpMode ? "#cc5533" : "#4a8a4a";
+        ctx.fillStyle = playerColor;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 14px monospace";
+        ctx.fillText(player.classEmoji[player.currentClass], player.x - 8, player.y - 8);
+        ctx.font = "bold 12px monospace";
+        ctx.fillText(player.name, player.x - 25, player.y - 20);
+        
+        // HP Bar игрока
+        let hpPercent = player.hp / player.maxHp;
+        ctx.fillStyle = "#331a0a";
+        ctx.fillRect(player.x - 30, player.y - 35, 60, 8);
+        ctx.fillStyle = "#44aa44";
+        ctx.fillRect(player.x - 30, player.y - 35, 60 * hpPercent, 8);
+        
+        if (player.pvpSkirmish > 0) {
+            ctx.fillStyle = "#ff6666";
+            ctx.font = "bold 10px monospace";
+            ctx.fillText(`СКВЕРНА: ${player.pvpSkirmish}`, player.x - 30, player.y - 45);
+        }
+        
+        // Радиус атаки
+        let attackRange = player.currentClass === "sword" ? 50 : (player.currentClass === "bow" ? 120 : 110);
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, attackRange, 0, Math.PI * 2);
+        ctx.strokeStyle = "#ffdd88";
+        ctx.setLineDash([5, 5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
     }
-
+    
+    // ========== ОБРАБОТЧИКИ ==========
+    let lastClickTime = 0;
+    
+    function handleCanvasClick(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        
+        let clientX, clientY;
+        if (e.touches) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        
+        let mouseX = (clientX - rect.left) * scaleX;
+        let mouseY = (clientY - rect.top) * scaleY;
+        
+        // Движение игрока
+        let dx = mouseX - player.x;
+        let dy = mouseY - player.y;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance > 5) {
+            let speed = 5;
+            player.x += (dx / distance) * speed;
+            player.y += (dy / distance) * speed;
+        }
+        
+        // Проверка границ
+        player.x = Math.min(Math.max(player.x, 30), canvasWidth - 30);
+        player.y = Math.min(Math.max(player.y, 30), canvasHeight - 30);
+        
+        // Проверка клика по монстру (атака)
+        let now = Date.now();
+        if (now - lastClickTime < 300) return;
+        lastClickTime = now;
+        
+        let hit = false;
+        for (let i = monsters.length - 1; i >= 0; i--) {
+            let m = monsters[i];
+            let dxm = mouseX - m.x;
+            let dym = mouseY - m.y;
+            if (Math.sqrt(dxm * dxm + dym * dym) <= m.radius + 10) {
+                attackMonster(m, mouseX, mouseY);
+                hit = true;
+                break;
+            }
+        }
+        
+        if (!hit) {
+            for (let p of otherPlayers) {
+                let dxp = mouseX - p.x;
+                let dyp = mouseY - p.y;
+                if (Math.sqrt(dxp * dxp + dyp * dyp) <= p.radius + 10) {
+                    attackPlayer(p, mouseX, mouseY);
+                    hit = true;
+                    break;
+                }
+            }
+        }
+        
+        drawGame();
+        updateUI();
+    }
+    
+    function changeClass(className) {
+        player.currentClass = className;
+        document.getElementById('classSword').classList.remove('active');
+        document.getElementById('classBow').classList.remove('active');
+        document.getElementById('classStaff').classList.remove('active');
+        document.getElementById(`class${className.charAt(0).toUpperCase() + className.slice(1)}`).classList.add('active');
+        addLog(`⚔️ Вы сменили класс на ${className === 'sword' ? 'МЕЧНИК' : className === 'bow' ? 'ЛУЧНИК' : 'МАГ'}`);
+        drawGame();
+    }
+    
+    function togglePvP() {
+        player.pvpMode = !player.pvpMode;
+        updatePvpIndicator();
+        addLog(player.pvpMode ? "🔴 Включен PVP режим! Будьте осторожны!" : "⚪ Выключен PVP режим");
+        drawGame();
+    }
+    
+    function updatePvpIndicator() {
+        const indicator = document.getElementById('pvpIndicator');
+        if (player.pvpSkirmish > 0) {
+            indicator.innerHTML = `🔴 СКВЕРНА: ${player.pvpSkirmish}`;
+            indicator.style.background = "#8a2a2a";
+        } else if (player.pvpMode) {
+            indicator.innerHTML = "🔴 PVP РЕЖИМ";
+            indicator.style.background = "#6a2a2a";
+        } else {
+            indicator.innerHTML = "⚪ МИРНЫЙ";
+            indicator.style.background = "#2a5a2a";
+        }
+    }
+    
+    function updateUI() {
+        document.getElementById('hpStat').innerHTML = `${player.hp}/${player.maxHp}`;
+        document.getElementById('dmgStat').innerHTML = `${player.baseDmg.min}-${player.baseDmg.max}`;
+        document.getElementById('defStat').innerHTML = getPlayerDefense();
+        document.getElementById('levelStat').innerHTML = player.level;
+        document.getElementById('goldStat').innerHTML = player.gold;
+        document.getElementById('diamondsStat').innerHTML = player.diamonds;
+    }
+    
+    function showInventory() {
+        const list = document.getElementById('inventoryList');
+        list.innerHTML = `
+            <div class="inventory-item">⚔️ Мечник: ${player.skillSword} ур.</div>
+            <div class="inventory-item">🏹 Лучник: ${player.skillBow} ур.</div>
+            <div class="inventory-item">🔮 Маг: ${player.skillStaff} ур.</div>
+            <div class="inventory-item">🛡️ Защита: ${player.skillDefense} ур.</div>
+            <div class="inventory-item">💰 Золото: ${player.gold}</div>
+            <div class="inventory-item">💎 Алмазы: ${player.diamonds}</div>
+            <div class="inventory-item">⚔️ PVP убийств: ${player.pvpKills}</div>
+            <div class="inventory-item">⚠️ Скверна: ${player.pvpSkirmish}</div>
+        `;
+        document.getElementById('inventoryModal').style.display = 'flex';
+    }
+    
+    function showSkills() {
+        const list = document.getElementById('skillsList');
+        let totalSkill = player.skillSword + player.skillBow + player.skillStaff + player.skillDefense;
+        list.innerHTML = `
+            <div class="inventory-item">⚔️ Мечник: ${player.skillSword} ур. (+${Math.floor((player.skillSword - 1) * 5)}% урона)</div>
+            <div class="inventory-item">🏹 Лучник: ${player.skillBow} ур. (+${Math.floor((player.skillBow - 1) * 5)}% урона)</div>
+            <div class="inventory-item">🔮 Маг: ${player.skillStaff} ур. (+${Math.floor((player.skillStaff - 1) * 5)}% урона)</div>
+            <div class="inventory-item">🛡️ Защита: ${player.skillDefense} ур. (+${Math.floor((player.skillDefense - 1) * 3)}% защиты)</div>
+            <div class="inventory-item">📊 Общий уровень навыков: ${Math.floor(totalSkill / 4)}</div>
+            <div class="inventory-item">💡 Совет: Используйте оружие, чтобы прокачивать навык!</div>
+        `;
+        document.getElementById('skillsModal').style.display = 'flex';
+    }
+    
+    function addLog(message) {
+        const logArea = document.getElementById('battleLog');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerHTML = message;
+        logArea.appendChild(entry);
+        logArea.scrollTop = logArea.scrollHeight;
+        while (logArea.children.length > 50) {
+            logArea.removeChild(logArea.firstChild);
+        }
+    }
+    
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+    
+    // ========== ОНЛАЙН СИМУЛЯЦИЯ ==========
+    let onlineCount = 1339;
+    function updateOnlineCount() {
+        onlineCount += Math.floor(Math.random() * 10) - 5;
+        onlineCount = Math.max(500, Math.min(5000, onlineCount));
+        document.getElementById('onlineInfo').innerHTML = `🟢 ONLINE: ${onlineCount.toLocaleString()}`;
+        setTimeout(updateOnlineCount, 30000);
+    }
+    
+    function simulateOtherPlayers() {
+        setInterval(() => {
+            if (otherPlayers.length < 5 && Math.random() < 0.3) {
+                spawnPlayer();
+            }
+            if (otherPlayers.length > 10) {
+                otherPlayers = otherPlayers.slice(0, 10);
+            }
+            drawGame();
+        }, 10000);
+    }
+    
+    // Анимация движения
+    function gameLoop() {
+        drawGame();
+        requestAnimationFrame(gameLoop);
+    }
+    
     // ========== ИНИЦИАЛИЗАЦИЯ ==========
     function init() {
-        // Случайное имя игрока
-        const names = ["АРТУР", "ТИТАН", "ЛЕГЕНДА", "СТРАЖ", "МЕЧ", "ЩИТ", "ДРАКОН", "ВОИН"];
-        player.name = names[Math.floor(Math.random() * names.length)];
+        resizeCanvas();
         
-        loadGame();
+        // Спавн монстров
+        for (let i = 0; i < 5; i++) spawnMonster();
         
-        // Создаем первого монстра с правильным hpMax
-        let firstMonster = { ...monsters[0], hp: monsters[0].hp };
-        currentMonster = {
-            ...firstMonster,
-            hpMax: firstMonster.hp,
-            hp: firstMonster.hp
-        };
-        updateMonsterUI();
+        // Спавн других игроков
+        for (let i = 0; i < 3; i++) spawnPlayer();
         
         // Обработчики
-        document.getElementById('attackBtn').addEventListener('click', attack);
+        canvas.addEventListener('click', handleCanvasClick);
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleCanvasClick(e);
+        });
+        
+        document.getElementById('classSword').addEventListener('click', () => changeClass('sword'));
+        document.getElementById('classBow').addEventListener('click', () => changeClass('bow'));
+        document.getElementById('classStaff').addEventListener('click', () => changeClass('staff'));
+        document.getElementById('pvpToggleBtn').addEventListener('click', togglePvP);
+        document.getElementById('inventoryBtn').addEventListener('click', showInventory);
+        document.getElementById('skillsBtn').addEventListener('click', showSkills);
         document.getElementById('healBtn').addEventListener('click', heal);
-        document.getElementById('nextMonsterBtn').addEventListener('click', nextMonster);
-        document.getElementById('upgradeDmg').addEventListener('click', upgradeDamage);
-        document.getElementById('upgradeDef').addEventListener('click', upgradeDefense);
-        document.getElementById('upgradeHp').addEventListener('click', upgradeMaxHp);
         
-        // Сохранение каждые 10 секунд
-        setInterval(saveGame, 10000);
+        // Класс по умолчанию
+        document.getElementById('classSword').classList.add('active');
         
-        // Онлайн режим
-        initWebSocket();
+        updateUI();
+        updateOnlineCount();
+        simulateOtherPlayers();
+        gameLoop();
         
-        addLog("⚔️ Добро пожаловать в Rucoy Online!");
-        addLog("🎮 Сражайся с монстрами, улучшай статы и становись легендой!");
+        addLog("🎮 Добро пожаловать в Rucoy Online!");
+        addLog("👆 Кликай по врагам, чтобы атаковать");
+        addLog("🏃 Двигай мышкой/пальцем для уклонения");
+        addLog("⚔️ Смени класс кнопками внизу");
+        addLog("🔴 Включи PVP для сражений с другими игроками");
     }
-
+    
     init();
 </script>
 </body>
