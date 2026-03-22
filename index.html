@@ -52,11 +52,12 @@
             font-weight: bold;
             color: #ffdd99;
             box-shadow: inset 0 0 0 1px #5a4a2e;
+            cursor: pointer;
+            transition: 0.1s;
         }
+        .stat:hover { background: #3a3222; }
 
-        .stat span {
-            color: #ffaa55;
-        }
+        .stat span { color: #ffaa55; }
 
         .save-status {
             background: #2a5a2a;
@@ -96,10 +97,8 @@
             border-top: 2px solid #d4b87a;
         }
 
-        .class-buttons {
-            display: flex;
-            gap: 8px;
-        }
+        .class-buttons { display: flex; gap: 8px; }
+        .settings-btn { background: #3a2a2a; }
 
         .pixel-btn {
             background: #2a2418;
@@ -113,20 +112,14 @@
             border-bottom: 3px solid #7a5a3a;
             transition: 0.05s linear;
         }
-
         .pixel-btn.active {
             background: #4a3a22;
             border-bottom-color: #ffcc66;
             color: #ffdd99;
             text-shadow: 0 0 2px #ffaa33;
         }
+        .pixel-btn:active { transform: translateY(2px); border-bottom-width: 1px; }
 
-        .pixel-btn:active {
-            transform: translateY(2px);
-            border-bottom-width: 1px;
-        }
-
-        /* Всплывающее уведомление */
         .toast-notification {
             position: fixed;
             top: 80px;
@@ -143,18 +136,10 @@
             animation: slideIn 0.3s ease-out;
             pointer-events: none;
             backdrop-filter: blur(4px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-
         @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(100px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            from { opacity: 0; transform: translateX(100px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         .damage-pop {
@@ -167,7 +152,6 @@
             z-index: 25;
             animation: floatUp 0.7s ease-out forwards;
         }
-
         @keyframes floatUp {
             0% { opacity: 1; transform: translateY(0); }
             100% { opacity: 0; transform: translateY(-45px); }
@@ -185,7 +169,6 @@
             align-items: center;
             z-index: 200;
         }
-
         .modal-card {
             background: #2a2418;
             border: 4px solid #d4b87a;
@@ -195,14 +178,7 @@
             border-radius: 20px;
             color: #ffdd99;
         }
-
-        .modal-title {
-            font-size: 22px;
-            text-align: center;
-            margin-bottom: 16px;
-            color: #ffcc66;
-        }
-
+        .modal-title { font-size: 22px; text-align: center; margin-bottom: 16px; color: #ffcc66; }
         .close-btn {
             background: #3a2a1a;
             padding: 10px;
@@ -211,7 +187,22 @@
             cursor: pointer;
             border-radius: 30px;
         }
-
+        .color-picker {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin: 12px 0;
+            flex-wrap: wrap;
+        }
+        .color-option {
+            width: 35px;
+            height: 35px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid #d4b87a;
+            transition: 0.1s;
+        }
+        .color-option:hover { transform: scale(1.1); border-color: #ffaa66; }
         .inv-item, .skill-item {
             background: #1e1a12;
             margin: 8px 0;
@@ -220,7 +211,6 @@
             justify-content: space-between;
             border-left: 4px solid #ffaa66;
         }
-
         input {
             background: #0a0a0a;
             border: 2px solid #d4b87a;
@@ -253,6 +243,7 @@
         <div class="stat">✨ Lv.<span id="lvlVal">1</span></div>
         <div class="stat">💰 <span id="goldVal">500</span></div>
         <div class="stat">💎 <span id="diaVal">0</span></div>
+        <div class="stat settings-btn" id="settingsBtn" style="background:#3a2a2a;">🎨 ЦВЕТ</div>
         <div class="save-status" id="saveStatus">💾 Сохранено</div>
     </div>
 
@@ -278,17 +269,44 @@
 
 <div id="invModal" class="modal"><div class="modal-card"><div class="modal-title">📦 ИНВЕНТАРЬ</div><div id="invList"></div><div class="close-btn" onclick="closeModal('invModal')">ЗАКРЫТЬ</div></div></div>
 <div id="skillModal" class="modal"><div class="modal-card"><div class="modal-title">📊 НАВЫКИ</div><div id="skillList"></div><div class="close-btn" onclick="closeModal('skillModal')">ЗАКРЫТЬ</div></div></div>
+<div id="colorModal" class="modal"><div class="modal-card"><div class="modal-title">🎨 ЦВЕТ ПЕРСОНАЖА</div>
+    <div style="margin: 12px 0;"><b>👕 Броня/Туловище:</b></div>
+    <div class="color-picker" id="armorColors"></div>
+    <div style="margin: 12px 0;"><b>👖 Штаны/Ноги:</b></div>
+    <div class="color-picker" id="pantsColors"></div>
+    <div style="margin: 12px 0;"><b>🎨 Кожа/Лицо:</b></div>
+    <div class="color-picker" id="skinColors"></div>
+    <div style="margin: 12px 0;"><b>💇 Волосы/Шлем:</b></div>
+    <div class="color-picker" id="hairColors"></div>
+    <div class="close-btn" onclick="closeModal('colorModal')">ГОТОВО</div>
+</div></div>
 
 <script>
-    // ---------- ПИКСЕЛЬНАЯ КАРТА ----------
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
 
+    // НАСТРОЙКИ
     let TILE = 48;
     let MAP_W = 20;
     let MAP_H = 15;
+    let MOVE_SPEED = 2.5;  // медленнее (было 5)
     let mapTiles = [];
+
+    // ЦВЕТА ПЕРСОНАЖА (сохраняются)
+    let heroColors = {
+        armor: "#6e8e5a",   // броня/туловище
+        pants: "#6a5a3a",   // штаны
+        skin: "#f5d4a4",    // кожа
+        hair: "#3a2a1a"     // волосы
+    };
+    
+    const colorOptions = {
+        armor: ["#6e8e5a", "#8e6e5a", "#5a8e6e", "#8e5a6e", "#5a6e8e", "#aa8866", "#6688aa", "#aa6688"],
+        pants: ["#6a5a3a", "#5a3a2a", "#3a5a2a", "#2a3a5a", "#5a2a3a", "#8a6a4a", "#4a6a8a"],
+        skin: ["#f5d4a4", "#e0b87a", "#c9a06a", "#b88a5a", "#9a6a4a", "#d4bc9a", "#c8aa7a"],
+        hair: ["#3a2a1a", "#2a1a0a", "#5a3a2a", "#8a5a3a", "#aa6a3a", "#2a2a1a", "#4a3a2a"]
+    };
 
     function generateMap() {
         for (let y = 0; y < MAP_H; y++) {
@@ -323,21 +341,37 @@
         ctx.strokeRect(px, py, TILE, TILE);
     }
 
-    // ---------- ПИКСЕЛЬНЫЙ ГЕРОЙ ----------
+    // ПОДСВЕТКА КЛЕТКИ
+    let highlightX = null, highlightY = null;
+    
+    // КРАСИВЫЙ ПИКСЕЛЬНЫЙ ГЕРОЙ С НАСТРАИВАЕМЫМИ ЦВЕТАМИ
     function drawHero(x, y, moving, className) {
         const px = x * TILE, py = y * TILE;
         const offX = (TILE - 32) / 2, offY = (TILE - 32) / 2 + 4;
-        const armor = className === "sword" ? "#6e8e5a" : (className === "bow" ? "#b87a4a" : "#5a7a9e");
-        const skin = "#f5d4a4";
-        ctx.fillStyle = armor;
+        
+        // Штаны/ноги
+        ctx.fillStyle = heroColors.pants;
+        ctx.fillRect(px+offX+10, py+offY+28, 6, 6);
+        ctx.fillRect(px+offX+16, py+offY+28, 6, 6);
+        
+        // Туловище/броня
+        ctx.fillStyle = heroColors.armor;
         ctx.fillRect(px+offX+8, py+offY+16, 16, 12);
-        ctx.fillStyle = skin;
+        
+        // Голова
+        ctx.fillStyle = heroColors.skin;
         ctx.fillRect(px+offX+12, py+offY+8, 8, 12);
+        
+        // Глаза
         ctx.fillStyle = "#000";
         ctx.fillRect(px+offX+13, py+offY+12, 2, 2);
         ctx.fillRect(px+offX+17, py+offY+12, 2, 2);
-        ctx.fillStyle = "#3a2a1a";
+        
+        // Волосы/шлем
+        ctx.fillStyle = heroColors.hair;
         ctx.fillRect(px+offX+11, py+offY+4, 10, 6);
+        
+        // Оружие по классу
         ctx.fillStyle = "#c9b06a";
         if (className === "sword") {
             ctx.fillRect(px+offX+24, py+offY+20, 6, 3);
@@ -346,17 +380,22 @@
             ctx.fillRect(px+offX+22, py+offY+22, 10, 2);
             ctx.fillRect(px+offX+26, py+offY+18, 2, 8);
         } else {
+            ctx.fillStyle = "#aa88ff";
             ctx.fillRect(px+offX+22, py+offY+20, 8, 4);
             for(let i=0;i<3;i++) ctx.fillRect(px+offX+24+i*2, py+offY+14, 1, 6);
         }
-        ctx.fillStyle = "#6a5a3a";
-        ctx.fillRect(px+offX+10, py+offY+28, 6, 6);
-        ctx.fillRect(px+offX+16, py+offY+28, 6, 6);
+        
+        // Анимация ног при движении
         if (moving) {
             ctx.fillStyle = "#ba9a6a";
             ctx.fillRect(px+offX+10, py+offY+32, 6, 3);
             ctx.fillRect(px+offX+16, py+offY+32, 6, 3);
         }
+        
+        // Блик на глазах
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(px+offX+14, py+offY+11, 1, 1);
+        ctx.fillRect(px+offX+18, py+offY+11, 1, 1);
     }
 
     function drawMonster(x, y, monster) {
@@ -380,7 +419,6 @@
         ctx.fillText(monster.name, px+off+2, py+off-8);
     }
 
-    // ---------- ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ ----------
     function showToast(message, isError = false) {
         const toast = document.createElement('div');
         toast.className = 'toast-notification';
@@ -397,7 +435,7 @@
         }, 3000);
     }
 
-    // ---------- ИГРОВЫЕ ДАННЫЕ ----------
+    // ИГРОК
     let player = {
         id: null, name: "Sugiru", level: 1, exp: 0, hp: 100, maxHp: 100,
         dmgMin: 25, dmgMax: 35, defense: 15,
@@ -440,41 +478,61 @@
     }
 
     function attackRange() {
-        if (player.class === "sword") return 1.2;
-        if (player.class === "bow") return 3.6;
-        return 3.2;
+        if (player.class === "sword") return 1.5;
+        if (player.class === "bow") return 5.2;  // лучник стреляет через 5 клеток
+        return 5.0;  // маг через 5 клеток
     }
 
+    // ДВИЖЕНИЕ С МЕДЛЕННОЙ СКОРОСТЬЮ
     function moveToTarget() {
         if (!player.moving) return;
-        let dx = player.targetX - player.x, dy = player.targetY - player.y;
-        if (dx === 0 && dy === 0) { 
-            player.moving = false; 
-            return; 
+        let dx = player.targetX - player.x;
+        let dy = player.targetY - player.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if (dist < 0.05) {
+            player.moving = false;
+            player.x = player.targetX;
+            player.y = player.targetY;
+            return;
         }
-        let nx = player.x, ny = player.y;
-        if (Math.abs(dx) > 0) nx += dx > 0 ? 1 : -1;
-        else if (Math.abs(dy) > 0) ny += dy > 0 ? 1 : -1;
-        if (canWalk(nx, ny)) {
-            player.x = nx;
-            player.y = ny;
+        
+        let step = Math.min(MOVE_SPEED / TILE, dist);
+        let angle = Math.atan2(dy, dx);
+        let newX = player.x + Math.cos(angle) * step;
+        let newY = player.y + Math.sin(angle) * step;
+        
+        let tx = Math.round(newX);
+        let ty = Math.round(newY);
+        
+        if (canWalk(tx, ty) || (tx === player.targetX && ty === player.targetY)) {
+            player.x = newX;
+            player.y = newY;
         } else {
             player.moving = false;
         }
     }
 
     function attackMonster(mon) {
-        let dist = Math.abs(player.x - mon.x) + Math.abs(player.y - mon.y);
-        if (dist > attackRange()) { 
-            showToast(`❌ Слишком далеко от ${mon.name}`, true);
+        let dx = player.x - mon.x;
+        let dy = player.y - mon.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        let range = attackRange();
+        
+        if (dist > range) { 
+            showToast(`❌ Слишком далеко от ${mon.name} (нужно ${Math.ceil(range)} клеток)`, true);
             return false; 
         }
+        
         let dmg = getDamageBonus();
         let crit = Math.random() < 0.1;
         if (crit) dmg = Math.floor(dmg * 1.8);
         let final = Math.max(1, dmg - mon.def);
         mon.hp -= final;
-        showDamage(mon.x*TILE+TILE/2, mon.y*TILE+20, final, crit);
+        
+        let px = mon.x * TILE + TILE/2;
+        let py = mon.y * TILE + 20;
+        showDamage(px, py, final, crit);
         
         if (mon.hp <= 0) {
             showToast(`🎉 +${mon.exp} EXP, +${mon.gold}💰`);
@@ -505,6 +563,7 @@
             player.hp = player.maxHp;
             player.x = 10; player.y = 7; 
             player.targetX = 10; player.targetY = 7;
+            player.moving = false;
         }
         updateUI(); 
         saveGame();
@@ -512,19 +571,12 @@
     }
 
     function heal() {
-        if (player.gold < 50) { 
-            showToast(`❌ Нужно 50 золота`, true);
-            return; 
-        }
-        if (player.hp >= player.maxHp) { 
-            showToast(`❤️ Здоровье полное`);
-            return; 
-        }
+        if (player.gold < 50) { showToast(`❌ Нужно 50 золота`, true); return; }
+        if (player.hp >= player.maxHp) { showToast(`❤️ Здоровье полное`); return; }
         player.gold -= 50;
         player.hp = player.maxHp;
         showToast(`💊 Здоровье восстановлено!`);
-        updateUI(); 
-        saveGame();
+        updateUI(); saveGame();
     }
 
     function levelUp() {
@@ -556,17 +608,11 @@
         monsters.push({ ...t, id: Date.now()+Math.random(), hp: t.hp, maxHp: t.hp, x, y });
     }
 
-    // ---------- ОБРАБОТКА КЛИКОВ ----------
     function handleCanvasClick(e) {
         const rect = canvas.getBoundingClientRect();
         let cx, cy;
-        if (e.touches) { 
-            cx = e.touches[0].clientX; 
-            cy = e.touches[0].clientY; 
-        } else { 
-            cx = e.clientX; 
-            cy = e.clientY; 
-        }
+        if (e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; } 
+        else { cx = e.clientX; cy = e.clientY; }
         let scaleX = canvas.width / rect.width;
         let scaleY = canvas.height / rect.height;
         let mx = (cx - rect.left) * scaleX;
@@ -575,6 +621,10 @@
         let ty = Math.floor(my / TILE);
         
         if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) return;
+        
+        // Подсветка клетки
+        highlightX = tx;
+        highlightY = ty;
         
         let monsterHere = monsters.find(m => m.x === tx && m.y === ty);
         if (monsterHere) { 
@@ -603,17 +653,27 @@
         setTimeout(()=>div.remove(),700);
     }
 
-    // ---------- ОТРИСОВКА ----------
     function drawGame() {
         canvas.width = MAP_W * TILE;
         canvas.height = MAP_H * TILE;
         for (let y = 0; y < MAP_H; y++)
             for (let x = 0; x < MAP_W; x++)
                 drawTile(x, y, mapTiles[y][x]);
+        
+        // Подсветка выбранной клетки
+        if (highlightX !== null && highlightY !== null && canWalk(highlightX, highlightY)) {
+            ctx.fillStyle = "rgba(255, 215, 0, 0.4)";
+            ctx.fillRect(highlightX * TILE, highlightY * TILE, TILE, TILE);
+            ctx.strokeStyle = "#ffdd88";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(highlightX * TILE + 2, highlightY * TILE + 2, TILE - 4, TILE - 4);
+        }
+        
         monsters.forEach(m => drawMonster(m.x, m.y, m));
         otherPlayers.forEach(p => drawHero(p.x, p.y, false, p.class || "sword"));
         drawHero(player.x, player.y, player.moving, player.class);
         
+        // HP бар игрока
         let hpPercent = player.hp / player.maxHp;
         ctx.fillStyle = "#331a0a";
         ctx.fillRect(player.x*TILE+8, player.y*TILE-12, 32, 5);
@@ -630,7 +690,7 @@
     }
 
     function updateUI() {
-        document.getElementById('hpVal').innerText = player.hp;
+        document.getElementById('hpVal').innerText = Math.ceil(player.hp);
         document.getElementById('maxHpVal').innerText = player.maxHp;
         document.getElementById('dmgVal').innerText = `${player.dmgMin}-${player.dmgMax}`;
         document.getElementById('defVal').innerText = getDefense();
@@ -639,7 +699,6 @@
         document.getElementById('diaVal').innerText = player.diamonds;
     }
 
-    // ---------- СОХРАНЕНИЕ ----------
     function saveGame() {
         if (!player.id && player.name === "Гость") return;
         let data = {
@@ -653,7 +712,8 @@
             },
             monsters: monsters.map(m => ({ name: m.name, lvl: m.lvl, hp: m.hp, maxHp: m.maxHp,
                 dmgMin: m.dmgMin, dmgMax: m.dmgMax, exp: m.exp, gold: m.gold, def: m.def,
-                color: m.color, x: m.x, y: m.y }))
+                color: m.color, x: m.x, y: m.y })),
+            colors: heroColors
         };
         localStorage.setItem(`rucoy_${player.id || player.name}`, JSON.stringify(data));
         let st = document.getElementById('saveStatus');
@@ -668,13 +728,13 @@
             let data = JSON.parse(raw);
             Object.assign(player, data.player);
             monsters = data.monsters.map(m => ({ ...m, hp: m.hp, maxHp: m.maxHp }));
+            if (data.colors) Object.assign(heroColors, data.colors);
             updateUI();
             showToast(`💾 Загружен прогресс: ${player.name}, уровень ${player.level}`);
             return true;
         } catch(e) { return false; }
     }
 
-    // ---------- КЛАССЫ И PVP ----------
     function changeClass(c) {
         player.class = c;
         document.querySelectorAll('.class-buttons .pixel-btn').forEach(btn=>btn.classList.remove('active'));
@@ -692,6 +752,34 @@
         btn.style.background = player.pvpMode ? "#aa5533" : "#2a2418";
         btn.innerText = player.pvpMode ? "🔴 PVP ВКЛ" : "⚔️ PVP";
         showToast(player.pvpMode ? "🔴 PVP РЕЖИМ ВКЛЮЧЕН" : "⚪ PVP РЕЖИМ ВЫКЛЮЧЕН");
+        saveGame();
+    }
+
+    function openColorModal() {
+        const armorDiv = document.getElementById('armorColors');
+        const pantsDiv = document.getElementById('pantsColors');
+        const skinDiv = document.getElementById('skinColors');
+        const hairDiv = document.getElementById('hairColors');
+        
+        armorDiv.innerHTML = colorOptions.armor.map(c => 
+            `<div class="color-option" style="background:${c}" onclick="changeHeroColor('armor','${c}')"></div>`
+        ).join('');
+        pantsDiv.innerHTML = colorOptions.pants.map(c => 
+            `<div class="color-option" style="background:${c}" onclick="changeHeroColor('pants','${c}')"></div>`
+        ).join('');
+        skinDiv.innerHTML = colorOptions.skin.map(c => 
+            `<div class="color-option" style="background:${c}" onclick="changeHeroColor('skin','${c}')"></div>`
+        ).join('');
+        hairDiv.innerHTML = colorOptions.hair.map(c => 
+            `<div class="color-option" style="background:${c}" onclick="changeHeroColor('hair','${c}')"></div>`
+        ).join('');
+        
+        document.getElementById('colorModal').style.display = 'flex';
+    }
+    
+    function changeHeroColor(part, color) {
+        heroColors[part] = color;
+        drawGame();
         saveGame();
     }
 
@@ -719,11 +807,8 @@
         document.getElementById('skillModal').style.display = 'flex';
     }
 
-    function closeModal(id) { 
-        document.getElementById(id).style.display = 'none'; 
-    }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    // ---------- АНИМАЦИЯ ----------
     function gameLoop() {
         moveToTarget();
         drawGame();
@@ -743,6 +828,7 @@
         document.getElementById('skillBtn').onclick = showSkills;
         document.getElementById('healBtn').onclick = heal;
         document.getElementById('saveBtn').onclick = saveGame;
+        document.getElementById('settingsBtn').onclick = openColorModal;
         setInterval(()=> { if(monsters.length < 6) spawnMonster(); drawGame(); }, 9000);
         setInterval(()=> saveGame(), 30000);
         window.addEventListener('beforeunload', ()=>saveGame());
