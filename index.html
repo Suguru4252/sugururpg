@@ -38,18 +38,21 @@
             border-bottom: 3px solid #d4b87a;
             flex-shrink: 0;
             z-index: 10;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .player-stats {
             display: flex;
-            gap: 20px;
+            gap: 15px;
             background: #2a2418;
-            padding: 6px 24px;
+            padding: 6px 20px;
             border-radius: 30px;
+            flex-wrap: wrap;
         }
         .player-stats div {
             color: #ffdd99;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
         }
         .player-stats span {
@@ -81,17 +84,18 @@
             gap: 10px;
             border-top: 3px solid #d4b87a;
             flex-shrink: 0;
+            flex-wrap: wrap;
         }
 
-        .class-buttons { display: flex; gap: 12px; }
+        .class-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
 
         .pixel-btn {
             background: #3a2a1a;
             border: none;
-            padding: 10px 24px;
+            padding: 8px 18px;
             font-family: monospace;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 13px;
             color: #e6d5a8;
             cursor: pointer;
             border-bottom: 3px solid #7a5a3a;
@@ -207,6 +211,11 @@
             margin: 5px 0;
             border-radius: 8px;
         }
+        @media (max-width: 600px) {
+            .player-stats { gap: 8px; padding: 4px 12px; }
+            .player-stats div { font-size: 10px; }
+            .pixel-btn { padding: 6px 12px; font-size: 11px; }
+        }
     </style>
 </head>
 <body>
@@ -269,7 +278,7 @@
     let MAP_H = 19;
     let cameraX = 0, cameraY = 0;
     let mapTiles = [];
-    let playerDir = 0;
+    let playerDir = 2; // направление: 0-вверх,1-влево,2-вправо,3-вниз
     let attackTimer = null;
     let currentTarget = null;
     let highlightX = null, highlightY = null;
@@ -288,13 +297,13 @@
     let nextMonsterId = 1;
     let monsterAttackTimers = new Map();
     
-    // ========== МОНСТРЫ ==========
+    // ========== МОНСТРЫ (медленнее) ==========
     const monsterTypes = [
-        { name: "🐀 КРЫСА", lvl:1, hp:55, dmgMin:7, dmgMax:14, exp:15, gold:18, def:2, color:"#8e6a4a", speed:0.22 },
-        { name: "🐺 ВОЛК", lvl:2, hp:85, dmgMin:11, dmgMax:21, exp:28, gold:32, def:4, color:"#6a6a5a", speed:0.28 },
-        { name: "🧟 ЗОМБИ", lvl:3, hp:120, dmgMin:15, dmgMax:28, exp:45, gold:55, def:7, color:"#6a7a4a", speed:0.18 },
-        { name: "👹 ОРК", lvl:4, hp:170, dmgMin:20, dmgMax:38, exp:70, gold:85, def:10, color:"#7a5a3a", speed:0.24 },
-        { name: "🐉 ДРАКОН", lvl:5, hp:250, dmgMin:28, dmgMax:52, exp:110, gold:130, def:14, color:"#9a5a3a", speed:0.20 }
+        { name: "🐀 КРЫСА", lvl:1, hp:55, dmgMin:7, dmgMax:14, exp:15, gold:18, def:2, color:"#8e6a4a", speed:0.12 },
+        { name: "🐺 ВОЛК", lvl:2, hp:85, dmgMin:11, dmgMax:21, exp:28, gold:32, def:4, color:"#6a6a5a", speed:0.14 },
+        { name: "🧟 ЗОМБИ", lvl:3, hp:120, dmgMin:15, dmgMax:28, exp:45, gold:55, def:7, color:"#6a7a4a", speed:0.10 },
+        { name: "👹 ОРК", lvl:4, hp:170, dmgMin:20, dmgMax:38, exp:70, gold:85, def:10, color:"#7a5a3a", speed:0.12 },
+        { name: "🐉 ДРАКОН", lvl:5, hp:250, dmgMin:28, dmgMax:52, exp:110, gold:130, def:14, color:"#9a5a3a", speed:0.10 }
     ];
     
     // ========== ОТРИСОВКА ==========
@@ -327,7 +336,7 @@
         const offX = (TILE - 36) / 2;
         const offY = (TILE - 36) / 2;
         
-        // Броня по классу
+        // Тело (броня по классу)
         if (className === "sword") ctx.fillStyle = "#6e8e5a";
         else if (className === "bow") ctx.fillStyle = "#8aae6a";
         else ctx.fillStyle = "#6a8aae";
@@ -342,18 +351,18 @@
         ctx.fillStyle = "#f5d4a4";
         ctx.fillRect(px+offX+12, py+offY+4, 12, 14);
         
-        // Глаза
+        // Глаза (зависит от направления)
         ctx.fillStyle = "#000";
-        if (dir === 0) {
+        if (dir === 3) { // вниз
             ctx.fillRect(px+offX+14, py+offY+10, 3, 3);
             ctx.fillRect(px+offX+19, py+offY+10, 3, 3);
-        } else if (dir === 1) {
+        } else if (dir === 1) { // влево
             ctx.fillRect(px+offX+12, py+offY+10, 3, 3);
             ctx.fillRect(px+offX+17, py+offY+10, 3, 3);
-        } else if (dir === 2) {
+        } else if (dir === 2) { // вправо
             ctx.fillRect(px+offX+16, py+offY+10, 3, 3);
             ctx.fillRect(px+offX+21, py+offY+10, 3, 3);
-        } else {
+        } else { // вверх
             ctx.fillRect(px+offX+14, py+offY+8, 3, 3);
             ctx.fillRect(px+offX+19, py+offY+8, 3, 3);
         }
@@ -376,6 +385,7 @@
             for(let i=0;i<4;i++) ctx.fillRect(px+offX+28+i*2, py+offY+16, 2, 8);
         }
         
+        // Анимация ходьбы
         if (isMoving && (Date.now() % 400 < 200)) {
             ctx.fillStyle = "#ba9a6a";
             ctx.fillRect(px+offX+10, py+offY+38, 7, 5);
@@ -401,6 +411,7 @@
             ctx.strokeRect(px+2, py+2, TILE-4, TILE-4);
         }
         
+        // Полоска HP
         let percent = monster.hp / monster.maxHp;
         ctx.fillStyle = "#331a0a";
         ctx.fillRect(px+4, py-10, TILE-8, 6);
@@ -462,7 +473,6 @@
         document.getElementById('gameArea').appendChild(div);
         setTimeout(()=>div.remove(),700);
         
-        // Эффект крови
         let blood = document.createElement('div');
         blood.className = 'blood-effect';
         blood.style.left = (x-15)+'px';
@@ -494,14 +504,16 @@
         monsters.push({ ...t, id: nextMonsterId++, hp: t.hp, maxHp: t.hp, x, y });
     }
     
+    // Движение монстров: идут только если игрок в радиусе 5 клеток, иначе стоят
     function moveMonsters() {
         for (let m of monsters) {
             let dx = player.x - m.x;
             let dy = player.y - m.y;
             let dist = Math.abs(dx) + Math.abs(dy);
             
-            if (dist <= 3.5 && dist > 0.5) {
-                let moveSpeed = m.speed || 0.18;
+            // Радиус агро: 5 клеток
+            if (dist <= 5 && dist > 0.8) {
+                let moveSpeed = m.speed || 0.08;
                 let nx = m.x, ny = m.y;
                 
                 if (Math.abs(dx) > Math.abs(dy)) {
@@ -513,7 +525,7 @@
                 let tx = Math.round(nx);
                 let ty = Math.round(ny);
                 
-                if (canWalk(tx, ty) && !(tx === player.x && ty === player.y)) {
+                if (canWalk(tx, ty) && !(tx === Math.round(player.x) && ty === Math.round(player.y))) {
                     m.x = nx;
                     m.y = ny;
                 }
@@ -521,6 +533,7 @@
         }
     }
     
+    // Атака монстра: бьёт только если стоит на соседней клетке (расстояние <= 1.2)
     function startMonsterAttack(monster) {
         if (monsterAttackTimers.has(monster.id)) return;
         
@@ -532,11 +545,12 @@
             }
             
             let dist = Math.abs(player.x - monster.x) + Math.abs(player.y - monster.y);
+            // Бьёт только если расстояние меньше 1.5 (соседняя клетка)
             if (dist <= 1.5) {
                 let dmg = Math.floor(Math.random()*(monster.dmgMax-monster.dmgMin+1)+monster.dmgMin);
                 let finalDmg = Math.max(1, dmg - getDefense());
                 player.hp -= finalDmg;
-                showDamage(player.x*TILE+TILE/2, player.y*TILE+20, finalDmg, false, true);
+                showDamage(monster.x*TILE+TILE/2, monster.y*TILE+20, finalDmg, false, true);
                 
                 if (player.hp <= 0) {
                     player.hp = player.maxHp;
@@ -545,10 +559,15 @@
                     player.targetX = 12; player.targetY = 9;
                     player.moving = false;
                     showToast("💀 ВЫ ПАЛИ! -50💰", true);
+                    // Очищаем таймеры атак монстров при смерти
+                    for (let [id, t] of monsterAttackTimers) {
+                        clearInterval(t);
+                        monsterAttackTimers.delete(id);
+                    }
                 }
                 updateUI();
             }
-        }, 1500);
+        }, 2000); // Атака раз в 2 секунды
         
         monsterAttackTimers.set(monster.id, timer);
     }
@@ -558,7 +577,7 @@
         currentTarget = monster;
         
         attackTimer = setInterval(() => {
-            if (!currentTarget || currentTarget.hp <= 0 || !monsters.includes(currentTarget)) {
+            if (!currentTarget || currentTarget.hp <= 0 || !monsters.includes(currentTarget) || player.hp <= 0) {
                 stopAutoAttack();
                 return;
             }
@@ -592,7 +611,10 @@
                 
                 levelUp();
                 monsters = monsters.filter(m => m !== currentTarget);
-                monsterAttackTimers.delete(currentTarget.id);
+                if (monsterAttackTimers.has(currentTarget.id)) {
+                    clearInterval(monsterAttackTimers.get(currentTarget.id));
+                    monsterAttackTimers.delete(currentTarget.id);
+                }
                 spawnMonster();
                 stopAutoAttack();
                 updateUI();
@@ -636,20 +658,21 @@
         saveGame();
     }
     
+    // Плавное движение игрока (медленнее)
     function moveToTarget() {
         if (!player.moving) return;
         let dx = player.targetX - player.x;
         let dy = player.targetY - player.y;
         let dist = Math.sqrt(dx*dx + dy*dy);
         
-        if (dist < 0.08) {
+        if (dist < 0.05) {
             player.moving = false;
             player.x = player.targetX;
             player.y = player.targetY;
             return;
         }
         
-        let step = Math.min(0.1, dist);
+        let step = Math.min(0.06, dist); // медленнее
         let angle = Math.atan2(dy, dx);
         let newX = player.x + Math.cos(angle) * step;
         let newY = player.y + Math.sin(angle) * step;
@@ -660,10 +683,11 @@
         if (canWalk(tx, ty) || (tx === player.targetX && ty === player.targetY)) {
             player.x = newX;
             player.y = newY;
+            // Обновляем направление для анимации
             if (Math.abs(dx) > Math.abs(dy)) {
                 playerDir = dx > 0 ? 2 : 1;
             } else {
-                playerDir = dy > 0 ? 0 : 3;
+                playerDir = dy > 0 ? 3 : 0;
             }
         } else {
             player.moving = false;
@@ -673,8 +697,14 @@
     function handleCanvasClick(e) {
         const rect = canvas.getBoundingClientRect();
         let cx, cy;
-        if (e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
-        else { cx = e.clientX; cy = e.clientY; }
+        if (e.touches) { 
+            e.preventDefault();
+            cx = e.touches[0].clientX; 
+            cy = e.touches[0].clientY; 
+        } else { 
+            cx = e.clientX; 
+            cy = e.clientY; 
+        }
         
         let scaleX = canvas.width / rect.width;
         let scaleY = canvas.height / rect.height;
@@ -688,7 +718,7 @@
         highlightX = tx;
         highlightY = ty;
         
-        let monster = monsters.find(m => m.x === tx && m.y === ty);
+        let monster = monsters.find(m => Math.round(m.x) === tx && Math.round(m.y) === ty);
         if (monster) {
             if (currentTarget === monster) {
                 stopAutoAttack();
@@ -719,73 +749,87 @@
         document.getElementById('playerGoldDisplay').innerText = player.gold;
     }
     
+    // Плавная камера
+    function updateCamera() {
+        let viewW = canvas.width / TILE;
+        let viewH = canvas.height / TILE;
+        let targetCamX = player.x - viewW / 2;
+        let targetCamY = player.y - viewH / 2;
+        targetCamX = Math.min(Math.max(targetCamX, 0), MAP_W - viewW);
+        targetCamY = Math.min(Math.max(targetCamY, 0), MAP_H - viewH);
+        
+        // Плавное следование камеры
+        cameraX = cameraX * 0.9 + targetCamX * 0.1;
+        cameraY = cameraY * 0.9 + targetCamY * 0.1;
+    }
+    
     function drawGame() {
         if (!canvas.width || !canvas.height) return;
         
-        let viewW = Math.ceil(canvas.width / TILE);
-        let viewH = Math.ceil(canvas.height / TILE);
+        updateCamera();
         
-        cameraX = Math.min(Math.max(player.x - viewW/2, 0), MAP_W - viewW);
-        cameraY = Math.min(Math.max(player.y - viewH/2, 0), MAP_H - viewH);
+        let viewW = Math.ceil(canvas.width / TILE) + 2;
+        let viewH = Math.ceil(canvas.height / TILE) + 2;
         
-        let startX = Math.floor(cameraX);
-        let startY = Math.floor(cameraY);
+        let startX = Math.max(0, Math.floor(cameraX));
+        let startY = Math.max(0, Math.floor(cameraY));
+        let endX = Math.min(MAP_W, startX + viewW);
+        let endY = Math.min(MAP_H, startY + viewH);
         
-        for (let y = 0; y < viewH; y++) {
-            for (let x = 0; x < viewW; x++) {
-                let mapX = startX + x;
-                let mapY = startY + y;
-                if (mapX >= 0 && mapX < MAP_W && mapY >= 0 && mapY < MAP_H) {
-                    drawTile(x, y, mapTiles[mapY][mapX]);
-                } else {
-                    ctx.fillStyle = "#2a382a";
-                    ctx.fillRect(x*TILE, y*TILE, TILE, TILE);
+        for (let y = startY; y < endY; y++) {
+            for (let x = startX; x < endX; x++) {
+                let screenX = (x - cameraX) * TILE;
+                let screenY = (y - cameraY) * TILE;
+                if (screenX + TILE > 0 && screenX < canvas.width && screenY + TILE > 0 && screenY < canvas.height) {
+                    drawTile(screenX / TILE, screenY / TILE, mapTiles[y][x]);
                 }
             }
         }
         
+        // Подсветка клика
         if (highlightX !== null && highlightY !== null && canWalk(highlightX, highlightY)) {
-            let sx = highlightX - startX;
-            let sy = highlightY - startY;
-            if (sx >= 0 && sx < viewW && sy >= 0 && sy < viewH) {
+            let screenX = (highlightX - cameraX) * TILE;
+            let screenY = (highlightY - cameraY) * TILE;
+            if (screenX + TILE > 0 && screenX < canvas.width && screenY + TILE > 0 && screenY < canvas.height) {
                 ctx.fillStyle = "rgba(255, 215, 0, 0.35)";
-                ctx.fillRect(sx*TILE, sy*TILE, TILE, TILE);
+                ctx.fillRect(screenX, screenY, TILE, TILE);
                 ctx.strokeStyle = "#ffdd88";
                 ctx.lineWidth = 2;
-                ctx.strokeRect(sx*TILE+3, sy*TILE+3, TILE-6, TILE-6);
+                ctx.strokeRect(screenX+3, screenY+3, TILE-6, TILE-6);
             }
         }
         
+        // Монстры
         monsters.forEach(m => {
-            let sx = m.x - startX;
-            let sy = m.y - startY;
-            if (sx >= 0 && sx < viewW && sy >= 0 && sy < viewH) {
-                drawMonster(sx, sy, m, currentTarget === m);
+            let screenX = (m.x - cameraX) * TILE;
+            let screenY = (m.y - cameraY) * TILE;
+            if (screenX + TILE > 0 && screenX < canvas.width && screenY + TILE > 0 && screenY < canvas.height) {
+                drawMonster(screenX / TILE, screenY / TILE, m, currentTarget === m);
             }
         });
         
-        let px = player.x - startX;
-        let py = player.y - startY;
-        if (px >= 0 && px < viewW && py >= 0 && py < viewH) {
-            drawHero(px, py, playerDir, player.class, player.moving);
-            
-            let hpPercent = player.hp / player.maxHp;
-            ctx.fillStyle = "#331a0a";
-            ctx.fillRect(px*TILE+10, py*TILE-12, 36, 5);
-            ctx.fillStyle = "#44aa44";
-            ctx.fillRect(px*TILE+10, py*TILE-12, 36 * hpPercent, 5);
-            
-            ctx.fillStyle = "#ffdd99";
-            ctx.font = "bold 12px monospace";
-            ctx.fillText(`${player.name} Lv.${player.level}`, px*TILE+8, py*TILE-18);
-        }
+        // Игрок
+        let screenX = (player.x - cameraX) * TILE;
+        let screenY = (player.y - cameraY) * TILE;
+        drawHero(screenX / TILE, screenY / TILE, playerDir, player.class, player.moving);
+        
+        // Полоска HP игрока
+        let hpPercent = player.hp / player.maxHp;
+        ctx.fillStyle = "#331a0a";
+        ctx.fillRect(screenX+10, screenY-12, 36, 5);
+        ctx.fillStyle = "#44aa44";
+        ctx.fillRect(screenX+10, screenY-12, 36 * hpPercent, 5);
+        
+        ctx.fillStyle = "#ffdd99";
+        ctx.font = "bold 12px monospace";
+        ctx.fillText(`${player.name} Lv.${player.level}`, screenX+8, screenY-18);
     }
     
     function resizeCanvas() {
         const area = document.querySelector('.game-area');
         canvas.width = area.clientWidth;
         canvas.height = area.clientHeight;
-        TILE = Math.min(52, Math.floor(canvas.width / 18));
+        TILE = Math.min(52, Math.max(38, Math.floor(canvas.width / 18)));
         drawGame();
     }
     
@@ -856,9 +900,12 @@
     function gameLoop() {
         moveToTarget();
         moveMonsters();
+        // Запускаем атаку для монстров рядом
         for (let m of monsters) {
             let dist = Math.abs(player.x - m.x) + Math.abs(player.y - m.y);
-            if (dist <= 1.5) startMonsterAttack(m);
+            if (dist <= 1.5 && m.hp > 0 && player.hp > 0) {
+                startMonsterAttack(m);
+            }
         }
         drawGame();
         requestAnimationFrame(gameLoop);
@@ -878,7 +925,7 @@
         document.getElementById('saveBtn').onclick = saveGame;
         document.getElementById('playerNameDisplay').onclick = openSettings;
         
-        setInterval(()=> { if(monsters.length < 7) spawnMonster(); }, 7000);
+        setInterval(()=> { if(monsters.length < 7) spawnMonster(); }, 8000);
         setInterval(()=> saveGame(), 30000);
         window.addEventListener('beforeunload', ()=>saveGame());
         
@@ -898,6 +945,7 @@
         player.moving = false;
         player.hp = player.maxHp;
         monsters = [];
+        monsterAttackTimers.clear();
         
         if (!loadGame(player.id)) {
             showToast(`✨ Добро пожаловать, ${player.name}!`);
@@ -917,6 +965,7 @@
         player.moving = false;
         player.hp = player.maxHp;
         monsters = [];
+        monsterAttackTimers.clear();
         
         showToast(`👤 Игра как гость: ${player.name}`);
         document.getElementById('loginModal').style.display = 'none';
