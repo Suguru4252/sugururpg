@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Rucoy Online Style - Прототип MMORPG</title>
+    <title>Rucoy Online Style - Полноценная версия с сеткой, агро и убеганием</title>
     <style>
         * {
             box-sizing: border-box;
@@ -21,7 +21,6 @@
             padding: 20px;
         }
 
-        /* Игровой контейнер */
         .game-container {
             background: #1a1f2e;
             border-radius: 24px;
@@ -38,7 +37,6 @@
             box-shadow: 0 0 0 2px #2a2f3e, 0 0 0 4px #0f121c;
         }
 
-        /* Панель статистики (стилизация как в Rucoy) */
         .stats-panel {
             background: #0b0e16e0;
             backdrop-filter: blur(4px);
@@ -77,13 +75,6 @@
             border-radius: 12px;
             transition: width 0.1s linear;
         }
-        .mp-fill {
-            background: #4a7db4;
-            width: 100%;
-            height: 100%;
-            border-radius: 12px;
-            transition: width 0.1s linear;
-        }
 
         button {
             background: #2c2f3f;
@@ -101,512 +92,700 @@
             transform: translateY(2px);
             box-shadow: none;
         }
-        .class-btn {
-            background: #2a2e4a;
-        }
-        .active-class {
-            background: #6a3e9e;
-            box-shadow: 0 0 6px #a97eff;
-            border: 1px solid #c9aaff;
-        }
+        
         .log-area {
             background: #010101aa;
             font-size: 11px;
             padding: 4px 12px;
             border-radius: 20px;
-            max-width: 200px;
-            white-space: nowrap;
+            max-width: 250px;
             overflow: hidden;
             text-overflow: ellipsis;
             color: #ccc;
         }
+        
+        .controls-info {
+            font-size: 10px;
+            text-align: center;
+            margin-top: 8px;
+            color:#6e7a9a;
+        }
+        
         @media (max-width: 700px) {
             .stats-panel { flex-direction: column; align-items: stretch; }
-            .log-area { max-width: none; text-align: center; white-space: normal; }
+            .log-area { max-width: none; text-align: center; }
         }
     </style>
 </head>
 <body>
 <div>
     <div class="game-container">
-        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        <canvas id="gameCanvas" width="900" height="600"></canvas>
         
         <div class="stats-panel">
             <div class="stat">⚔️ Lv.<span id="levelVal">1</span></div>
             <div class="stat">🛡️ <span id="classLabel">Рыцарь</span></div>
-            <div style="display: flex; gap: 6px;">
-                <div class="hp-bar-bg"><div class="hp-fill" id="hpFill" style="width: 100%"></div></div>
-                <div class="hp-bar-bg" style="background:#1f2a3a;"><div class="mp-fill" id="mpFill" style="width: 100%"></div></div>
-            </div>
-            <div class="stat">❤️ <span id="hpText">100/100</span></div>
-            <div class="stat">💧 <span id="mpText">50/50</span></div>
+            <div class="hp-bar-bg"><div class="hp-fill" id="hpFill" style="width: 100%"></div></div>
+            <div class="stat">❤️ <span id="hpText">120/120</span></div>
             <div class="stat">✨ XP: <span id="xpVal">0</span>/<span id="nextXp">100</span></div>
+            <div class="log-area" id="logMsg">👋 Нажми на клетку для движения | Клик по мобу = атака</div>
         </div>
 
         <div style="display: flex; justify-content: space-between; margin-top: 10px; gap: 8px; flex-wrap: wrap;">
             <div style="display: flex; gap: 8px;">
-                <button id="classKnight" class="class-btn active-class">🛡️ Рыцарь</button>
+                <button id="classKnight" class="class-btn" style="background:#6a3e9e;">🛡️ Рыцарь</button>
                 <button id="classArcher" class="class-btn">🏹 Лучник</button>
                 <button id="classMage" class="class-btn">🔮 Маг</button>
             </div>
             <div style="display: flex; gap: 8px;">
                 <button id="healBtn">💊 Лечение (HP)</button>
-                <button id="manaBtn">✨ Мана</button>
                 <button id="spellBtn" style="background:#5a3e2a;">✨✨ Спец.удар</button>
             </div>
-            <div class="log-area" id="logMsg">👋 Нажми на монстра для атаки!</div>
         </div>
-        <div style="font-size: 10px; text-align: center; margin-top: 8px; color:#6e7a9a;">
-            🖱️ Клик по врагу = атака | Клик по себе = восстановление | Меняй класс в бою
+        <div class="controls-info">
+            🖱️ ЛКМ по клетке = движение | ЛКМ по мобу = атака | Мобы агрятся при приближении!
         </div>
     </div>
 </div>
 
 <script>
     (function(){
-        // -------- Игровые параметры (вдохновение Rucoy) ----------
+        // ========== НАСТРОЙКИ МИРА ==========
+        const TILE_SIZE = 48;      // размер клетки
+        const MAP_WIDTH = 19;       // 19x13 клеток (900/48 ≈ 18.75, 600/48 = 12.5)
+        const MAP_HEIGHT = 13;
+        
+        // Карта (0 - можно ходить, 1 - стена/дерево)
+        const map = Array(MAP_HEIGHT).fill().map(() => Array(MAP_WIDTH).fill(0));
+        // Добавляем стены по краям и несколько препятствий
+        for(let y = 0; y < MAP_HEIGHT; y++) {
+            map[y][0] = 1;
+            map[y][MAP_WIDTH-1] = 1;
+        }
+        for(let x = 0; x < MAP_WIDTH; x++) {
+            map[0][x] = 1;
+            map[MAP_HEIGHT-1][x] = 1;
+        }
+        // Несколько деревьев/камней внутри
+        map[3][5] = 1; map[3][6] = 1; map[8][12] = 1; map[9][12] = 1;
+        map[10][4] = 1; map[5][15] = 1; map[6][15] = 1; map[7][3] = 1;
+        
+        // ========== ИГРОК ==========
         let player = {
+            x: 9, y: 6,              // позиция в клетках
             level: 1,
             xp: 0,
-            maxHp: 100,
-            hp: 100,
-            maxMana: 50,
-            mana: 50,
-            baseAttack: 18,
+            maxHp: 120,
+            hp: 120,
+            baseAttack: 20,
             defense: 12,
-            className: "knight", // knight, archer, mage
-            // бонусы классов
+            className: "knight",
+            isMoving: false,
+            path: [],                // путь для движения
+            
             get attack() {
-                if(this.className === "knight") return this.baseAttack + 4;
-                if(this.className === "archer") return this.baseAttack + 6;
-                if(this.className === "mage") return this.baseAttack + 5;
+                if(this.className === "knight") return this.baseAttack + 6;
+                if(this.className === "archer") return this.baseAttack + 8;
+                if(this.className === "mage") return this.baseAttack + 7;
                 return this.baseAttack;
-            },
-            get manaRegen() {
-                if(this.className === "mage") return 8;
-                return 3;
             }
         };
         
-        // Монстры (спавн 3 видов)
+        // ========== МОНСТРЫ (с AI, агро, преследованием) ==========
         let monsters = [
-            { id: 0, name: "Гоблин", hp: 38, maxHp: 38, attack: 12, defense: 2, xpReward: 28, x: 180, y: 220, size: 32, alive: true, type: "goblin" },
-            { id: 1, name: "Скелет", hp: 68, maxHp: 68, attack: 20, defense: 5, xpReward: 55, x: 520, y: 340, size: 36, alive: true, type: "skeleton" },
-            { id: 2, name: "Минотавр", hp: 125, maxHp: 125, attack: 30, defense: 9, xpReward: 110, x: 620, y: 110, size: 42, alive: true, type: "minotaur" }
+            { id: 0, name: "Гоблин", hp: 45, maxHp: 45, attack: 15, defense: 3, xpReward: 35, 
+              x: 5, y: 5, type: "goblin", aggroRange: 4, attackRange: 1.2, 
+              aggroTarget: null, lastAttackTime: 0, attackCooldown: 1000 },
+              
+            { id: 1, name: "Скелет", hp: 80, maxHp: 80, attack: 24, defense: 6, xpReward: 65, 
+              x: 14, y: 8, type: "skeleton", aggroRange: 5, attackRange: 1.2,
+              aggroTarget: null, lastAttackTime: 0, attackCooldown: 1100 },
+              
+            { id: 2, name: "Минотавр", hp: 150, maxHp: 150, attack: 35, defense: 10, xpReward: 120, 
+              x: 12, y: 3, type: "minotaur", aggroRange: 6, attackRange: 1.2,
+              aggroTarget: null, lastAttackTime: 0, attackCooldown: 1200 },
+              
+            { id: 3, name: "Паук", hp: 55, maxHp: 55, attack: 18, defense: 4, xpReward: 45, 
+              x: 3, y: 10, type: "spider", aggroRange: 4, attackRange: 1.2,
+              aggroTarget: null, lastAttackTime: 0, attackCooldown: 900 },
+              
+            { id: 4, name: "Орк", hp: 110, maxHp: 110, attack: 28, defense: 8, xpReward: 95, 
+              x: 16, y: 11, type: "orc", aggroRange: 5, attackRange: 1.2,
+              aggroTarget: null, lastAttackTime: 0, attackCooldown: 1000 }
         ];
         
-        // Вспомогательные переменные
-        let lastLog = "";
-        let cooldownAttack = false;
-        let cooldownSpell = false;
-        let selectedTargetId = null; // для визуального выделения
+        // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
+        let selectedMonster = null;      // моб под курсором
+        let mouseX = 0, mouseY = 0;
+        let lastAttackTime = 0;
+        let attackCooldown = 800;
+        let lastSpellTime = 0;
+        let spellCooldown = 3000;
+        let gameLoop = null;
         
-        // DOM элементы
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Обновление интерфейса
+        // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+        function addLog(msg) {
+            const logDiv = document.getElementById('logMsg');
+            logDiv.innerText = msg;
+            setTimeout(() => {
+                if(document.getElementById('logMsg').innerText === msg) {
+                    // оставляем последнее сообщение
+                }
+            }, 2500);
+        }
+        
         function updateUI() {
             document.getElementById('levelVal').innerText = player.level;
             const classNames = { knight:"Рыцарь", archer:"Лучник", mage:"Маг" };
             document.getElementById('classLabel').innerText = classNames[player.className];
             const hpPercent = (player.hp / player.maxHp) * 100;
-            const mpPercent = (player.mana / player.maxMana) * 100;
             document.getElementById('hpFill').style.width = `${hpPercent}%`;
-            document.getElementById('mpFill').style.width = `${mpPercent}%`;
             document.getElementById('hpText').innerText = `${Math.floor(player.hp)}/${player.maxHp}`;
-            document.getElementById('mpText').innerText = `${Math.floor(player.mana)}/${player.maxMana}`;
-            let needXP = Math.floor(100 + (player.level-1) * 35);
+            let needXP = Math.floor(100 + (player.level-1) * 40);
             document.getElementById('xpVal').innerText = player.xp;
             document.getElementById('nextXp').innerText = needXP;
             
-            // кнопки активного класса
-            document.getElementById('classKnight').classList.remove('active-class');
-            document.getElementById('classArcher').classList.remove('active-class');
-            document.getElementById('classMage').classList.remove('active-class');
-            if(player.className === 'knight') document.getElementById('classKnight').classList.add('active-class');
-            if(player.className === 'archer') document.getElementById('classArcher').classList.add('active-class');
-            if(player.className === 'mage') document.getElementById('classMage').classList.add('active-class');
+            // Стили кнопок классов
+            document.querySelectorAll('.class-btn').forEach(btn => btn.style.background = "#2c2f3f");
+            if(player.className === 'knight') document.getElementById('classKnight').style.background = "#6a3e9e";
+            if(player.className === 'archer') document.getElementById('classArcher').style.background = "#6a3e9e";
+            if(player.className === 'mage') document.getElementById('classMage').style.background = "#6a3e9e";
         }
         
-        function addLog(msg) {
-            lastLog = msg;
-            const logDiv = document.getElementById('logMsg');
-            logDiv.innerText = msg;
-            setTimeout(() => {
-                if(document.getElementById('logMsg').innerText === msg) {
-                    // не стираем если новое сообщение не пришло
-                }
-            }, 2000);
-        }
-        
-        // Проверка уровня и повышение статов (как в Rucoy: +HP, +мана, +атака)
         function checkLevelUp() {
-            let needXP = Math.floor(100 + (player.level-1) * 35);
+            let needXP = Math.floor(100 + (player.level-1) * 40);
             while(player.xp >= needXP) {
                 player.xp -= needXP;
                 player.level++;
-                // повышение характеристик
-                let hpGain = 22;
-                let manaGain = 12;
-                let attackGain = 4;
+                let hpGain = 25;
+                let attackGain = 5;
                 player.maxHp += hpGain;
                 player.hp += hpGain;
-                player.maxMana += manaGain;
-                player.mana += manaGain;
                 player.baseAttack += attackGain;
                 player.defense += 2;
-                addLog(`✨ УРОВЕНЬ ${player.level}! +HP +МАНА +АТАКА ✨`);
-                needXP = Math.floor(100 + (player.level-1) * 35);
+                addLog(`✨ УРОВЕНЬ ${player.level}! +HP +АТАКА ✨`);
+                needXP = Math.floor(100 + (player.level-1) * 40);
                 updateUI();
             }
-            // хп не может быть выше макс
             if(player.hp > player.maxHp) player.hp = player.maxHp;
-            if(player.mana > player.maxMana) player.mana = player.maxMana;
             updateUI();
         }
         
-        // Расчет урона (формула простая)
+        // Расчет урона
         function calculateDamage(attackerAttack, targetDefense) {
-            let raw = attackerAttack - targetDefense * 0.6;
-            if(raw < 5) raw = 5 + Math.random() * 8;
-            let variance = 0.85 + Math.random() * 0.5;
+            let raw = attackerAttack - targetDefense * 0.5;
+            if(raw < 5) raw = 5 + Math.random() * 10;
+            let variance = 0.8 + Math.random() * 0.6;
             let final = Math.floor(raw * variance);
             return Math.max(2, final);
         }
         
-        // Игрок атакует монстра
-        function playerAttackMonster(monster) {
-            if(!monster.alive) {
-                addLog("Монстр уже повержен!");
+        // Атака игрока по монстру
+        function playerAttack(monster) {
+            const now = Date.now();
+            if(now - lastAttackTime < attackCooldown) {
+                addLog("⚔️ Подождите, атака перезаряжается!");
                 return false;
             }
-            if(cooldownAttack) {
-                addLog("⚔️ Подождите, атака восстанавливается...");
-                return false;
-            }
+            
             let dmg = calculateDamage(player.attack, monster.defense);
             monster.hp -= dmg;
             addLog(`⚡ Вы нанесли ${dmg} урона ${monster.name}!`);
-            
-            cooldownAttack = true;
-            setTimeout(() => { cooldownAttack = false; }, 850);
+            lastAttackTime = now;
             
             if(monster.hp <= 0) {
-                monster.alive = false;
+                monster.hp = 0;
                 let rewardXP = monster.xpReward;
                 player.xp += rewardXP;
                 addLog(`🏆 Убит ${monster.name}! +${rewardXP} XP!`);
-                checkLevelUp();
-                // воскрешаем монстра через 5 секунд (спавн)
+                // Возрождение монстра через 8 секунд
                 setTimeout(() => {
-                    if(!monster.alive) {
+                    if(monster.hp <= 0) {
                         monster.hp = monster.maxHp;
-                        monster.alive = true;
-                        addLog(`🌀 ${monster.name} возродился в мире...`);
-                        draw(); // обновить канвас
+                        monster.aggroTarget = null;
+                        addLog(`🌀 ${monster.name} возродился!`);
+                        draw();
                     }
-                }, 5500);
-                draw();
-                return true;
+                }, 8000);
+                checkLevelUp();
             }
+            updateUI();
             draw();
             return true;
         }
         
-        // Монстр контратакует, если игрок его атаковал (реактивная механика)
-        function monsterAttackPlayer(monster) {
-            if(!monster.alive) return;
+        // Монстр атакует игрока
+        function monsterAttack(monster) {
+            const now = Date.now();
+            if(now - monster.lastAttackTime < monster.attackCooldown) return;
+            
             let dmg = calculateDamage(monster.attack, player.defense);
             player.hp -= dmg;
-            addLog(`💔 ${monster.name} контратакует! -${dmg} HP`);
+            monster.lastAttackTime = now;
+            addLog(`💔 ${monster.name} атакует! -${dmg} HP`);
+            
             if(player.hp <= 0) {
                 player.hp = 0;
-                addLog(`💀 ВАС УБИЛИ... возрождение через 3 секунды 💀`);
+                addLog(`💀 ВАС УБИЛИ... возрождение через 4 секунды 💀`);
                 updateUI();
                 draw();
-                // воскрешение игрока (потеря опыта минимальна или без потери, для демо)
                 setTimeout(() => {
                     player.hp = player.maxHp;
-                    player.mana = player.maxMana;
-                    addLog("🌟 Вы возродились в городе! Будьте осторожнее.");
+                    player.x = 9; player.y = 6; // респавн в центр
+                    player.path = [];
+                    // Сбрасываем агро у всех мобов
+                    monsters.forEach(m => m.aggroTarget = null);
+                    addLog("🌟 Вы возродились! Потеряно 10% опыта");
+                    player.xp = Math.max(0, player.xp - Math.floor(player.xp * 0.1));
+                    checkLevelUp();
                     updateUI();
                     draw();
-                }, 3000);
+                }, 4000);
             }
             updateUI();
             draw();
         }
         
-        // Специальная способность (разная для классов)
-        function useSpell() {
-            if(cooldownSpell) {
-                addLog("⏳ Заклинание перезаряжается!");
+        // AI монстров: проверка агро, преследование, атака
+        function updateMonstersAI() {
+            if(player.hp <= 0) return;
+            
+            for(let monster of monsters) {
+                if(monster.hp <= 0) continue;
+                
+                // Вычисляем расстояние до игрока в клетках
+                const dx = Math.abs(monster.x - player.x);
+                const dy = Math.abs(monster.y - player.y);
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                // Агро: если игрок в радиусе агро или уже есть цель
+                if(dist <= monster.aggroRange) {
+                    monster.aggroTarget = player;
+                }
+                
+                // Если есть цель (игрок) - преследовать
+                if(monster.aggroTarget === player && player.hp > 0) {
+                    // Движение к игроку (простой AI)
+                    if(dist > monster.attackRange) {
+                        let moveX = 0, moveY = 0;
+                        if(monster.x < player.x) moveX = 1;
+                        else if(monster.x > player.x) moveX = -1;
+                        if(monster.y < player.y) moveY = 1;
+                        else if(monster.y > player.y) moveY = -1;
+                        
+                        // Проверяем, можно ли двигаться
+                        let newX = monster.x + moveX;
+                        let newY = monster.y + moveY;
+                        if(newX >= 0 && newX < MAP_WIDTH && newY >= 0 && newY < MAP_HEIGHT && map[newY][newX] === 0) {
+                            // Проверка коллизии с другими монстрами (простая)
+                            let collision = false;
+                            for(let other of monsters) {
+                                if(other !== monster && other.hp > 0 && other.x === newX && other.y === newY) {
+                                    collision = true;
+                                    break;
+                                }
+                            }
+                            if(!collision) {
+                                monster.x = newX;
+                                monster.y = newY;
+                            }
+                        }
+                    }
+                    // Атака, если в радиусе атаки
+                    const newDist = Math.sqrt(Math.pow(monster.x - player.x, 2) + Math.pow(monster.y - player.y, 2));
+                    if(newDist <= monster.attackRange) {
+                        monsterAttack(monster);
+                    }
+                } else {
+                    // Если игрок далеко, сбрасываем агро
+                    if(dist > monster.aggroRange + 2) {
+                        monster.aggroTarget = null;
+                    }
+                }
+            }
+        }
+        
+        // ========== ДВИЖЕНИЕ ИГРОКА ПО КЛЕТКАМ ==========
+        function tryMoveTo(targetX, targetY) {
+            // Проверка границ и препятствий
+            if(targetX < 0 || targetX >= MAP_WIDTH || targetY < 0 || targetY >= MAP_HEIGHT) return false;
+            if(map[targetY][targetX] === 1) return false;
+            
+            // Проверка коллизии с монстрами (нельзя пройти сквозь живого моба)
+            for(let monster of monsters) {
+                if(monster.hp > 0 && monster.x === targetX && monster.y === targetY) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        // Поиск пути (BFS) к клетке
+        function findPath(startX, startY, targetX, targetY) {
+            if(!tryMoveTo(targetX, targetY) && !(targetX === startX && targetY === startY)) return [];
+            
+            const queue = [{x: startX, y: startY, path: []}];
+            const visited = Array(MAP_HEIGHT).fill().map(() => Array(MAP_WIDTH).fill(false));
+            visited[startY][startX] = true;
+            
+            while(queue.length > 0) {
+                const current = queue.shift();
+                
+                if(current.x === targetX && current.y === targetY) {
+                    return current.path;
+                }
+                
+                const neighbors = [
+                    {x: current.x+1, y: current.y, dir: 'right'},
+                    {x: current.x-1, y: current.y, dir: 'left'},
+                    {x: current.x, y: current.y+1, dir: 'down'},
+                    {x: current.x, y: current.y-1, dir: 'up'}
+                ];
+                
+                for(let neighbor of neighbors) {
+                    if(neighbor.x >= 0 && neighbor.x < MAP_WIDTH && neighbor.y >= 0 && neighbor.y < MAP_HEIGHT) {
+                        if(!visited[neighbor.y][neighbor.x] && tryMoveTo(neighbor.x, neighbor.y)) {
+                            visited[neighbor.y][neighbor.x] = true;
+                            queue.push({
+                                x: neighbor.x,
+                                y: neighbor.y,
+                                path: [...current.path, {x: neighbor.x, y: neighbor.y}]
+                            });
+                        }
+                    }
+                }
+            }
+            return [];
+        }
+        
+        // Движение игрока по клику
+        function movePlayerTo(targetTileX, targetTileY) {
+            if(player.hp <= 0) {
+                addLog("Вы мертвы, ждите возрождения!");
                 return;
             }
-            if(player.className === "knight") {
-                // рыцарь: усиленная атака + небольшое лечение
-                let bonusDmg = 18;
-                let found = false;
-                for(let m of monsters) {
-                    if(m.alive && Math.hypot(400 - m.x, 250 - m.y) < 180) {
-                        m.hp -= bonusDmg;
-                        addLog(`🛡️ Рыцарский удар! +${bonusDmg} урона ближайшему врагу!`);
-                        found = true;
-                        if(m.hp <= 0) {
-                            m.alive = false;
-                            player.xp += m.xpReward;
-                            addLog(`💀 ${m.name} пал от священного удара!`);
-                            checkLevelUp();
-                            setTimeout(() => { if(!m.alive) { m.alive=true; m.hp=m.maxHp; addLog(`⚔️ ${m.name} восстал`); draw();}}, 5000);
-                        }
-                        break;
-                    }
-                }
-                if(!found) addLog("Рыцарь: рядом нет врагов для удара!");
-                player.hp = Math.min(player.maxHp, player.hp + 15);
-                addLog(`🛡️ Рыцарь восстанавливает 15 HP`);
-            } 
-            else if(player.className === "archer") {
-                // лучник: двойной выстрел по всем живым
-                let totalDmg = 0;
-                for(let m of monsters) {
-                    if(m.alive) {
-                        let d = calculateDamage(player.attack+4, m.defense);
-                        m.hp -= d;
-                        totalDmg += d;
-                        if(m.hp <= 0) {
-                            m.alive = false;
-                            player.xp += m.xpReward;
-                            addLog(`🏹 Лучник убил ${m.name}!`);
-                            checkLevelUp();
-                            setTimeout(() => { if(!m.alive) { m.alive=true; m.hp=m.maxHp; addLog(`🔄 ${m.name} возвращён`); draw();}}, 5000);
-                        }
-                    }
-                }
-                if(totalDmg > 0) addLog(`🏹 Залп стрел: ${totalDmg} урона по врагам!`);
-                else addLog("Нет врагов для залпа!");
-            } 
-            else if(player.className === "mage") {
-                // маг: огненный шар + восстановление маны
-                let targets = monsters.filter(m => m.alive);
-                if(targets.length > 0) {
-                    let target = targets[Math.floor(Math.random()*targets.length)];
-                    let spellDmg = calculateDamage(player.attack+12, target.defense);
-                    target.hp -= spellDmg;
-                    addLog(`🔥 Маг: Огненный шар! -${spellDmg} по ${target.name}`);
-                    if(target.hp <= 0) {
-                        target.alive = false;
-                        player.xp += target.xpReward;
-                        addLog(`✨ Маг испепелил ${target.name}!`);
-                        checkLevelUp();
-                        setTimeout(() => { if(!target.alive) { target.alive=true; target.hp=target.maxHp; addLog(`🌙 Возрождение монстра`); draw();}}, 5000);
-                    }
-                } else addLog("Нет целей для магии!");
-                player.mana = Math.min(player.maxMana, player.mana + 20);
-                addLog(`💎 Маг восстанавливает 20 маны`);
+            
+            if(targetTileX === player.x && targetTileY === player.y) return;
+            
+            const path = findPath(player.x, player.y, targetTileX, targetTileY);
+            if(path.length > 0) {
+                player.path = path;
+                addLog(`🚶 Идем к клетке (${targetTileX}, ${targetTileY})`);
+            } else {
+                addLog("Невозможно пройти!");
             }
-            cooldownSpell = true;
-            setTimeout(() => { cooldownSpell = false; }, 3200);
+        }
+        
+        // Обновление движения (вызывается каждый кадр)
+        function updateMovement() {
+            if(player.path.length > 0 && player.hp > 0) {
+                const nextStep = player.path[0];
+                if(nextStep.x === player.x && nextStep.y === player.y) {
+                    player.path.shift();
+                } else {
+                    player.x = nextStep.x;
+                    player.y = nextStep.y;
+                    player.path.shift();
+                }
+                draw();
+            }
+        }
+        
+        // ========== СПЕЦИАЛЬНЫЕ СПОСОБНОСТИ ==========
+        function useSpell() {
+            const now = Date.now();
+            if(now - lastSpellTime < spellCooldown) {
+                addLog("⏳ Способность перезаряжается!");
+                return;
+            }
+            
+            if(player.className === "knight") {
+                // Рыцарь: удар по всем мобам в радиусе 2 клеток
+                let hitCount = 0;
+                for(let m of monsters) {
+                    if(m.hp > 0) {
+                        const dist = Math.abs(m.x - player.x) + Math.abs(m.y - player.y);
+                        if(dist <= 2) {
+                            let dmg = calculateDamage(player.attack + 10, m.defense);
+                            m.hp -= dmg;
+                            hitCount++;
+                            addLog(`🛡️ Удар возмездия по ${m.name}: -${dmg}`);
+                            if(m.hp <= 0) {
+                                player.xp += m.xpReward;
+                                addLog(`💀 ${m.name} повержен!`);
+                                setTimeout(() => { if(m.hp <= 0) { m.hp = m.maxHp; m.aggroTarget = null; draw();} }, 7000);
+                            }
+                        }
+                    }
+                }
+                if(hitCount === 0) addLog("Рядом нет врагов для удара!");
+                // Лечение
+                let healAmount = Math.floor(player.maxHp * 0.25);
+                player.hp = Math.min(player.maxHp, player.hp + healAmount);
+                addLog(`💚 Рыцарь лечится +${healAmount} HP`);
+            }
+            else if(player.className === "archer") {
+                // Лучник: дальний выстрел по самому ближайшему мобу
+                let closest = null;
+                let minDist = Infinity;
+                for(let m of monsters) {
+                    if(m.hp > 0) {
+                        const dist = Math.abs(m.x - player.x) + Math.abs(m.y - player.y);
+                        if(dist < minDist) {
+                            minDist = dist;
+                            closest = m;
+                        }
+                    }
+                }
+                if(closest) {
+                    let dmg = calculateDamage(player.attack + 15, closest.defense);
+                    closest.hp -= dmg;
+                    addLog(`🏹 Снайперский выстрел по ${closest.name}: -${dmg}`);
+                    if(closest.hp <= 0) {
+                        player.xp += closest.xpReward;
+                        addLog(`💀 ${closest.name} убит!`);
+                        setTimeout(() => { if(closest.hp <= 0) { closest.hp = closest.maxHp; closest.aggroTarget = null; draw();} }, 7000);
+                    }
+                } else addLog("Нет целей для выстрела!");
+            }
+            else if(player.className === "mage") {
+                // Маг: огненный шар по области
+                let hitCount = 0;
+                for(let m of monsters) {
+                    if(m.hp > 0) {
+                        const dist = Math.abs(m.x - player.x) + Math.abs(m.y - player.y);
+                        if(dist <= 3) {
+                            let dmg = calculateDamage(player.attack + 12, m.defense);
+                            m.hp -= dmg;
+                            hitCount++;
+                            addLog(`🔥 Огненный шар по ${m.name}: -${dmg}`);
+                            if(m.hp <= 0) {
+                                player.xp += m.xpReward;
+                                addLog(`💀 ${m.name} сожжен!`);
+                                setTimeout(() => { if(m.hp <= 0) { m.hp = m.maxHp; m.aggroTarget = null; draw();} }, 7000);
+                            }
+                        }
+                    }
+                }
+                if(hitCount === 0) addLog("Нет врагов в радиусе!");
+                // Восстановление маны (у мага)
+                addLog(`✨ Маг восстанавливает силы`);
+            }
+            
+            checkLevelUp();
+            lastSpellTime = now;
             updateUI();
             draw();
         }
         
-        // Лечение (зелье)
         function heal() {
-            let healAmount = Math.floor(player.maxHp * 0.35);
+            let healAmount = Math.floor(player.maxHp * 0.4);
             player.hp = Math.min(player.maxHp, player.hp + healAmount);
             addLog(`💊 Вылечено +${healAmount} HP`);
             updateUI();
             draw();
         }
         
-        function restoreMana() {
-            let manaAmount = Math.floor(player.maxMana * 0.5);
-            player.mana = Math.min(player.maxMana, player.mana + manaAmount);
-            addLog(`🔮 Восстановлено +${manaAmount} маны`);
+        // ========== ОБРАБОТКА КЛИКОВ ==========
+        function handleCanvasClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let clickX = (e.clientX - rect.left) * scaleX;
+            let clickY = (e.clientY - rect.top) * scaleY;
+            
+            // Определяем клетку, по которой кликнули
+            const tileX = Math.floor(clickX / TILE_SIZE);
+            const tileY = Math.floor(clickY / TILE_SIZE);
+            
+            if(tileX >= 0 && tileX < MAP_WIDTH && tileY >= 0 && tileY < MAP_HEIGHT) {
+                // Проверяем, кликнули ли по монстру
+                let clickedMonster = null;
+                for(let monster of monsters) {
+                    if(monster.hp > 0 && monster.x === tileX && monster.y === tileY) {
+                        clickedMonster = monster;
+                        break;
+                    }
+                }
+                
+                if(clickedMonster) {
+                    // Атака по монстру
+                    playerAttack(clickedMonster);
+                    // Монстр сразу агрится
+                    clickedMonster.aggroTarget = player;
+                } else {
+                    // Движение
+                    movePlayerTo(tileX, tileY);
+                }
+            }
+        }
+        
+        // Отслеживание монстра под курсором
+        function trackMousePosition(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let mouseCanvasX = (e.clientX - rect.left) * scaleX;
+            let mouseCanvasY = (e.clientY - rect.top) * scaleY;
+            
+            const tileX = Math.floor(mouseCanvasX / TILE_SIZE);
+            const tileY = Math.floor(mouseCanvasY / TILE_SIZE);
+            
+            selectedMonster = null;
+            for(let monster of monsters) {
+                if(monster.hp > 0 && monster.x === tileX && monster.y === tileY) {
+                    selectedMonster = monster;
+                    break;
+                }
+            }
+            draw();
+        }
+        
+        // ========== ОТРИСОВКА ==========
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Рисуем сетку и тайлы
+            for(let y = 0; y < MAP_HEIGHT; y++) {
+                for(let x = 0; x < MAP_WIDTH; x++) {
+                    let isWall = map[y][x] === 1;
+                    let xPos = x * TILE_SIZE;
+                    let yPos = y * TILE_SIZE;
+                    
+                    if(isWall) {
+                        ctx.fillStyle = "#4a3e35";
+                        ctx.fillRect(xPos, yPos, TILE_SIZE-1, TILE_SIZE-1);
+                        ctx.fillStyle = "#2d241e";
+                        ctx.fillRect(xPos+4, yPos+4, TILE_SIZE-9, TILE_SIZE-9);
+                    } else {
+                        ctx.fillStyle = "#5c6e4a";
+                        ctx.fillRect(xPos, yPos, TILE_SIZE-1, TILE_SIZE-1);
+                        ctx.fillStyle = "#6f8458";
+                        ctx.fillRect(xPos+2, yPos+2, TILE_SIZE-5, TILE_SIZE-5);
+                    }
+                    
+                    // Рисуем сетку
+                    ctx.strokeStyle = "#2c3524";
+                    ctx.strokeRect(xPos, yPos, TILE_SIZE, TILE_SIZE);
+                }
+            }
+            
+            // Рисуем монстров
+            for(let monster of monsters) {
+                if(monster.hp <= 0) continue;
+                
+                let xPos = monster.x * TILE_SIZE;
+                let yPos = monster.y * TILE_SIZE;
+                
+                // Цвет в зависимости от типа
+                if(monster.type === "goblin") ctx.fillStyle = "#6b8c42";
+                else if(monster.type === "skeleton") ctx.fillStyle = "#bdb28c";
+                else if(monster.type === "minotaur") ctx.fillStyle = "#9b5e2c";
+                else if(monster.type === "spider") ctx.fillStyle = "#6a4a2a";
+                else ctx.fillStyle = "#7a6a4a";
+                
+                ctx.fillRect(xPos+4, yPos+4, TILE_SIZE-8, TILE_SIZE-8);
+                ctx.fillStyle = "#000";
+                ctx.fillRect(xPos+12, yPos+12, 6, 6);
+                ctx.fillRect(xPos+TILE_SIZE-18, yPos+12, 6, 6);
+                
+                // Полоска HP
+                let hpPercent = monster.hp / monster.maxHp;
+                ctx.fillStyle = "#a13333";
+                ctx.fillRect(xPos+4, yPos-8, TILE_SIZE-8, 5);
+                ctx.fillStyle = "#d65c5c";
+                ctx.fillRect(xPos+4, yPos-8, (TILE_SIZE-8)*hpPercent, 5);
+                
+                ctx.fillStyle = "#fff3cf";
+                ctx.font = "bold 10 monospace";
+                ctx.fillText(monster.name, xPos+6, yPos-2);
+                
+                // Подсветка при наведении
+                if(selectedMonster === monster) {
+                    ctx.strokeStyle = "#ffcc44";
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(xPos+2, yPos+2, TILE_SIZE-4, TILE_SIZE-4);
+                }
+                
+                // Отображение агро (красный кружок)
+                if(monster.aggroTarget === player) {
+                    ctx.strokeStyle = "#ff4444";
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(xPos+TILE_SIZE/2, yPos+TILE_SIZE/2, TILE_SIZE/2-4, 0, Math.PI*2);
+                    ctx.stroke();
+                }
+            }
+            
+            // Рисуем игрока
+            let px = player.x * TILE_SIZE;
+            let py = player.y * TILE_SIZE;
+            
+            ctx.fillStyle = "#3a6ea5";
+            ctx.fillRect(px+8, py+8, TILE_SIZE-16, TILE_SIZE-16);
+            ctx.fillStyle = "#f9c87a";
+            ctx.beginPath();
+            ctx.arc(px+TILE_SIZE/2, py+TILE_SIZE/2-4, 10, 0, Math.PI*2);
+            ctx.fill();
+            
+            // Класс-иконка
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 14 monospace";
+            if(player.className === "knight") ctx.fillText("⚔️", px+18, py+28);
+            if(player.className === "archer") ctx.fillText("🏹", px+18, py+28);
+            if(player.className === "mage") ctx.fillText("🔮", px+18, py+28);
+            
+            // Полоска HP игрока над головой
+            let hpPercent = player.hp / player.maxHp;
+            ctx.fillStyle = "#a13333";
+            ctx.fillRect(px+8, py-4, TILE_SIZE-16, 4);
+            ctx.fillStyle = "#d65c5c";
+            ctx.fillRect(px+8, py-4, (TILE_SIZE-16)*hpPercent, 4);
+        }
+        
+        // ========== ИНИЦИАЛИЗАЦИЯ ==========
+        function setClass(className) {
+            player.className = className;
+            addLog(`🔄 Смена класса: ${className.toUpperCase()}`);
             updateUI();
             draw();
         }
         
-        // Пассивная регенерация (раз в 4 сек)
+        // Главный игровой цикл
+        function gameUpdate() {
+            updateMovement();
+            updateMonstersAI();
+            draw();
+            requestAnimationFrame(gameUpdate);
+        }
+        
+        // Регенерация HP
         setInterval(() => {
-            if(player.hp < player.maxHp) {
-                let regen = Math.floor(player.maxHp * 0.03);
+            if(player.hp < player.maxHp && player.hp > 0) {
+                let regen = Math.floor(player.maxHp * 0.02);
                 if(regen < 2) regen = 2;
                 player.hp = Math.min(player.maxHp, player.hp + regen);
                 updateUI();
                 draw();
             }
-            let manaReg = player.manaRegen;
-            if(player.mana < player.maxMana) {
-                player.mana = Math.min(player.maxMana, player.mana + manaReg);
-                updateUI();
-                draw();
-            }
-        }, 3800);
+        }, 3000);
         
-        // Обработка клика на канвасе (атака по монстру, либо лечение по себе)
-        function handleCanvasClick(e) {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            let mouseX = (e.clientX - rect.left) * scaleX;
-            let mouseY = (e.clientY - rect.top) * scaleY;
-            
-            // сначала ищем монстра
-            let clickedMonster = null;
-            for(let m of monsters) {
-                if(!m.alive) continue;
-                let half = m.size/2;
-                if(mouseX > m.x - half && mouseX < m.x + half && mouseY > m.y - half && mouseY < m.y + half) {
-                    clickedMonster = m;
-                    break;
-                }
-            }
-            if(clickedMonster) {
-                // атака по монстру
-                playerAttackMonster(clickedMonster);
-                // Контратака от монстра (если жив)
-                if(clickedMonster.alive && player.hp > 0) {
-                    monsterAttackPlayer(clickedMonster);
-                } else if(!clickedMonster.alive) {
-                    // ничего
-                }
-                updateUI();
-            } else {
-                // клик по пустому месту -> лечимся (удобно как в мобилках)
-                addLog("✨ Щелчок по себе: восстановление (зелье)");
-                heal();
-            }
-        }
-        
-        // ----- Отрисовка пиксельной RPG графики (стилизация Rucoy) -----
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // фон
-            ctx.fillStyle = "#2c3525";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            // трава/плитка
-            ctx.fillStyle = "#3e4a2f";
-            for(let i=0;i<200;i++) ctx.fillRect(i*40%800, (i*23)%500, 18, 18);
-            
-            // монстры
-            monsters.forEach(m => {
-                if(!m.alive) return;
-                let x = m.x - m.size/2, y = m.y - m.size/2;
-                // тень
-                ctx.fillStyle = "#1a1919";
-                ctx.beginPath();
-                ctx.ellipse(m.x+3, m.y+12, m.size/2.2, 8, 0, 0, Math.PI*2);
-                ctx.fill();
-                // тело монстра
-                if(m.type === "goblin") ctx.fillStyle = "#6b8c42";
-                else if(m.type === "skeleton") ctx.fillStyle = "#bdb28c";
-                else ctx.fillStyle = "#9b5e2c";
-                ctx.fillRect(x, y, m.size, m.size);
-                ctx.fillStyle = "#000";
-                ctx.fillRect(x+5, y+6, 6, 6);
-                ctx.fillRect(x+m.size-12, y+6, 6, 6);
-                ctx.fillStyle = "#ffaa66";
-                ctx.fillRect(x+8, y+m.size-12, m.size-16, 6);
-                // полоска HP
-                let hpPercent = m.hp/m.maxHp;
-                ctx.fillStyle = "#a13333";
-                ctx.fillRect(x, y-12, m.size, 5);
-                ctx.fillStyle = "#d65c5c";
-                ctx.fillRect(x, y-12, m.size*hpPercent, 5);
-                ctx.fillStyle = "#fff3cf";
-                ctx.font = "bold 14 monospace";
-                ctx.fillText(m.name, x+2, y-3);
-                // рамка выбранного
-                if(selectedTargetId === m.id) {
-                    ctx.strokeStyle = "#ffcc44";
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(x-2, y-2, m.size+4, m.size+4);
-                }
-            });
-            
-            // Игрок (рыцарь/лучник/маг стилизован)
-            let px = 400, py = 250;
-            let pSize = 28;
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = "#3a6ea5";
-            ctx.beginPath();
-            ctx.roundRect(px-pSize/2, py-pSize/2, pSize, pSize, 8);
-            ctx.fill();
-            ctx.fillStyle = "#f9c87a";
-            ctx.beginPath();
-            ctx.arc(px, py-5, 12, 0, Math.PI*2);
-            ctx.fill();
-            // шлем/шапка по классу
-            if(player.className === "knight") ctx.fillStyle = "#b0a07c";
-            else if(player.className === "archer") ctx.fillStyle = "#6f9e4f";
-            else ctx.fillStyle = "#a367c2";
-            ctx.fillRect(px-12, py-14, 24, 12);
-            // оружие
-            ctx.fillStyle = "#aabbdd";
-            if(player.className === "knight") ctx.fillRect(px+12, py-6, 14, 5);
-            if(player.className === "archer") ctx.fillRect(px+14, py-8, 12, 3);
-            if(player.className === "mage") {
-                ctx.fillStyle = "#ff88aa";
-                ctx.beginPath();
-                ctx.moveTo(px+16, py-10);
-                ctx.lineTo(px+28, py-6);
-                ctx.lineTo(px+16, py-2);
-                ctx.fill();
-            }
-            ctx.fillStyle = "#ffffdd";
-            ctx.font = "bold 12 monospace";
-            ctx.fillText(classMark(), px-18, py-18);
-            
-            function classMark() {
-                if(player.className === "knight") return "⚔️ KNIGHT";
-                if(player.className === "archer") return "🏹 ARCHER";
-                return "🔮 MAGE";
-            }
-        }
-        
-        // округление rect
-        if(!CanvasRenderingContext2D.prototype.roundRect) {
-            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
-                if (w < 2 * r) r = w / 2;
-                if (h < 2 * r) r = h / 2;
-                this.moveTo(x+r, y);
-                this.lineTo(x+w-r, y);
-                this.quadraticCurveTo(x+w, y, x+w, y+r);
-                this.lineTo(x+w, y+h-r);
-                this.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-                this.lineTo(x+r, y+h);
-                this.quadraticCurveTo(x, y+h, x, y+h-r);
-                this.lineTo(x, y+r);
-                this.quadraticCurveTo(x, y, x+r, y);
-                return this;
-            };
-        }
-        
-        // ----- Смена класса (как в Rucoy без потери прогресса)-----
-        function setClass(className) {
-            player.className = className;
-            addLog(`🔄 Смена класса: ${className.toUpperCase()}! Атака и реген изменены.`);
-            updateUI();
-            draw();
-        }
-        
-        // Инициализация кнопок
+        // Назначение обработчиков
         document.getElementById('classKnight').onclick = () => setClass('knight');
         document.getElementById('classArcher').onclick = () => setClass('archer');
         document.getElementById('classMage').onclick = () => setClass('mage');
         document.getElementById('healBtn').onclick = () => heal();
-        document.getElementById('manaBtn').onclick = () => restoreMana();
         document.getElementById('spellBtn').onclick = () => useSpell();
-        canvas.addEventListener('click', handleCanvasClick);
         
-        // первоначальная отрисовка и реген
+        canvas.addEventListener('click', handleCanvasClick);
+        canvas.addEventListener('mousemove', trackMousePosition);
+        
         updateUI();
-        draw();
-        setInterval(() => { draw(); }, 100);
-        // автообновление статов
+        gameUpdate();
     })();
 </script>
 </body>
