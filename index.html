@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Rucoy Online - Рабочая версия</title>
+    <title>Rucoy Online - Полная версия</title>
     <style>
         * {
             margin: 0;
@@ -18,7 +18,7 @@
             position: fixed;
             width: 100%;
             height: 100%;
-            font-family: monospace;
+            font-family: 'Courier New', monospace;
         }
         canvas {
             display: block;
@@ -79,7 +79,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: 0.05s linear;
         }
         .class-btn:active { transform: scale(0.95); }
         .corner-btn {
@@ -94,7 +93,6 @@
             border-radius: 30px;
             cursor: pointer;
             z-index: 100;
-            font-weight: bold;
         }
         .stats-btn { right: 15px; }
         .inventory-btn { left: 15px; }
@@ -111,7 +109,6 @@
             z-index: 100;
             white-space: nowrap;
             pointer-events: none;
-            font-family: monospace;
         }
         @media (max-width: 700px) {
             .v-btn { width: 50px; height: 50px; font-size: 24px; }
@@ -142,10 +139,10 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    // ========== РАЗМЕРЫ ==========
+    // ========== РАЗМЕРЫ (КЛЕТКИ 48px) ==========
     const TILE = 48;
-    const MAP_W = 100;
-    const MAP_H = 80;
+    const MAP_W = 110;
+    const MAP_H = 90;
     const WORLD_W = MAP_W * TILE;
     const WORLD_H = MAP_H * TILE;
     
@@ -171,17 +168,17 @@
                 map[i][j] = 0;
             }
         }
-        // Безопасная зона (квадрат)
+        // Безопасная зона
         for(let y = 12; y < 24; y++) {
             for(let x = 14; x < 30; x++) {
                 map[y][x] = 1;
             }
         }
-        // Ворота (4 стороны)
+        // Ворота
         for(let x = 19; x < 25; x++) { map[11][x] = 2; map[24][x] = 2; }
         for(let y = 16; y < 22; y++) { map[y][13] = 2; map[y][30] = 2; }
         // Деревья
-        for(let i = 0; i < 300; i++) {
+        for(let i = 0; i < 320; i++) {
             let x = 2 + Math.floor(Math.random() * (MAP_W - 4));
             let y = 2 + Math.floor(Math.random() * (MAP_H - 4));
             if(map[y][x] === 0 && !(y > 11 && y < 25 && x > 13 && x < 31)) {
@@ -189,7 +186,7 @@
             }
         }
         // Горы
-        for(let i = 0; i < 60; i++) {
+        for(let i = 0; i < 70; i++) {
             let x = 2 + Math.floor(Math.random() * (MAP_W - 4));
             let y = 2 + Math.floor(Math.random() * (MAP_H - 4));
             if(map[y][x] === 0 && !(y > 11 && y < 25 && x > 13 && x < 31)) {
@@ -197,7 +194,7 @@
             }
         }
         // Вода
-        for(let r = 0; r < 10; r++) {
+        for(let r = 0; r < 12; r++) {
             let sx = 10 + Math.random() * (MAP_W - 20);
             let sy = 8 + Math.random() * (MAP_H - 16);
             let ang = Math.random() * Math.PI * 2;
@@ -211,7 +208,7 @@
             }
         }
         // Камни
-        for(let i = 0; i < 150; i++) {
+        for(let i = 0; i < 160; i++) {
             let x = 1 + Math.floor(Math.random() * (MAP_W - 2));
             let y = 1 + Math.floor(Math.random() * (MAP_H - 2));
             if(map[y][x] === 0 && !(y > 11 && y < 25 && x > 13 && x < 31)) {
@@ -232,6 +229,59 @@
     
     function isGate(tx, ty) {
         return map[ty] && map[ty][tx] === 2;
+    }
+    
+    // ========== A* ПОИСК ПУТИ ==========
+    function findPath(sx, sy, tx, ty) {
+        let start = { x: Math.floor(sx / TILE), y: Math.floor(sy / TILE) };
+        let target = { x: Math.floor(tx / TILE), y: Math.floor(ty / TILE) };
+        if(!isWalkable(target.x, target.y)) return [];
+        if(start.x === target.x && start.y === target.y) return [];
+        
+        let open = [start];
+        let cameFrom = new Map();
+        let g = new Map();
+        let f = new Map();
+        g.set(start.x + "," + start.y, 0);
+        f.set(start.x + "," + start.y, Math.abs(start.x - target.x) + Math.abs(start.y - target.y));
+        
+        while(open.length) {
+            let current = open.reduce((a,b) => {
+                let af = f.get(a.x + "," + a.y) || 9999;
+                let bf = f.get(b.x + "," + b.y) || 9999;
+                return af < bf ? a : b;
+            });
+            
+            if(current.x === target.x && current.y === target.y) {
+                let path = [];
+                let cur = current;
+                while(cameFrom.has(cur.x + "," + cur.y)) {
+                    path.unshift({ x: cur.x * TILE + TILE/2, y: cur.y * TILE + TILE/2 });
+                    cur = cameFrom.get(cur.x + "," + cur.y);
+                }
+                path.push({ x: target.x * TILE + TILE/2, y: target.y * TILE + TILE/2 });
+                return path;
+            }
+            
+            open = open.filter(p => !(p.x === current.x && p.y === current.y));
+            let neighbors = [
+                { x: current.x+1, y: current.y }, { x: current.x-1, y: current.y },
+                { x: current.x, y: current.y+1 }, { x: current.x, y: current.y-1 }
+            ];
+            
+            for(let n of neighbors) {
+                if(!isWalkable(n.x, n.y)) continue;
+                let tentG = (g.get(current.x + "," + current.y) || 0) + 1;
+                let key = n.x + "," + n.y;
+                if(tentG < (g.get(key) || 9999)) {
+                    cameFrom.set(key, { x: current.x, y: current.y });
+                    g.set(key, tentG);
+                    f.set(key, tentG + Math.abs(n.x - target.x) + Math.abs(n.y - target.y));
+                    if(!open.some(p => p.x === n.x && p.y === n.y)) open.push(n);
+                }
+            }
+        }
+        return [];
     }
     
     // ========== КЛАССЫ ==========
@@ -358,59 +408,7 @@
         }
     }
     
-    // ========== A* ПОИСК ПУТИ ==========
-    function findPath(sx, sy, tx, ty) {
-        let start = { x: Math.floor(sx / TILE), y: Math.floor(sy / TILE) };
-        let target = { x: Math.floor(tx / TILE), y: Math.floor(ty / TILE) };
-        if(!isWalkable(target.x, target.y)) return [];
-        if(start.x === target.x && start.y === target.y) return [];
-        
-        let open = [start];
-        let cameFrom = new Map();
-        let g = new Map();
-        let f = new Map();
-        g.set(start.x + "," + start.y, 0);
-        f.set(start.x + "," + start.y, Math.abs(start.x - target.x) + Math.abs(start.y - target.y));
-        
-        while(open.length) {
-            let current = open.reduce((a, b) => {
-                let af = f.get(a.x + "," + a.y) || 9999;
-                let bf = f.get(b.x + "," + b.y) || 9999;
-                return af < bf ? a : b;
-            });
-            
-            if(current.x === target.x && current.y === target.y) {
-                let path = [];
-                let cur = current;
-                while(cameFrom.has(cur.x + "," + cur.y)) {
-                    path.unshift({ x: cur.x * TILE + TILE/2, y: cur.y * TILE + TILE/2 });
-                    cur = cameFrom.get(cur.x + "," + cur.y);
-                }
-                path.push({ x: target.x * TILE + TILE/2, y: target.y * TILE + TILE/2 });
-                return path;
-            }
-            
-            open = open.filter(p => !(p.x === current.x && p.y === current.y));
-            let neighbors = [
-                { x: current.x+1, y: current.y }, { x: current.x-1, y: current.y },
-                { x: current.x, y: current.y+1 }, { x: current.x, y: current.y-1 }
-            ];
-            
-            for(let n of neighbors) {
-                if(!isWalkable(n.x, n.y)) continue;
-                let tentG = (g.get(current.x + "," + current.y) || 0) + 1;
-                let key = n.x + "," + n.y;
-                if(tentG < (g.get(key) || 9999)) {
-                    cameFrom.set(key, { x: current.x, y: current.y });
-                    g.set(key, tentG);
-                    f.set(key, tentG + Math.abs(n.x - target.x) + Math.abs(n.y - target.y));
-                    if(!open.some(p => p.x === n.x && p.y === n.y)) open.push(n);
-                }
-            }
-        }
-        return [];
-    }
-    
+    // ========== ДВИЖЕНИЕ ==========
     function moveTo(x, y) {
         player.targetX = x;
         player.targetY = y;
